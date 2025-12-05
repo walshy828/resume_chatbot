@@ -46,6 +46,19 @@ def migrate():
         
         conn.commit()
         
+        # Add new User columns
+        print("\nMigrating 'users' table:")
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'email', 'VARCHAR(120)')
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'failed_login_attempts', 'INTEGER DEFAULT 0')
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'locked_until', 'DATETIME')
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'password_changed_at', 'DATETIME')
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'must_change_password', 'BOOLEAN DEFAULT 0')
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'last_login_at', 'DATETIME')
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'last_login_ip', 'VARCHAR(45)')
+        changes_made |= add_column_if_not_exists(cursor, 'users', 'is_active', 'BOOLEAN DEFAULT 1')
+        
+        conn.commit()
+        
         if changes_made:
             print("\n✓ Migration completed successfully!")
         else:

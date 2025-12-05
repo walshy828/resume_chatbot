@@ -1,0 +1,284 @@
+{% extends "base.html" %}
+
+{% block head %}
+<style>
+    /* CKEditor Dark Mode Support - Force override */
+    .dark .ck.ck-editor__main>.ck-editor__editable,
+    .dark .ck-editor__editable_inline {
+        background-color: #1f2937 !important;
+        color: #f3f4f6 !important;
+        border-color: #4b5563 !important;
+    }
+
+    .dark .ck.ck-toolbar {
+        background-color: #374151 !important;
+        border-color: #4b5563 !important;
+    }
+
+    .dark .ck-button,
+    .dark .ck-button__label {
+        color: #f3f4f6 !important;
+    }
+
+    .dark .ck-button:hover:not(.ck-disabled) {
+        background-color: #4b5563 !important;
+    }
+
+    .dark .ck-button.ck-on {
+        background-color: #4b5563 !important;
+        color: #60a5fa !important;
+    }
+
+    /* Light mode fallback */
+    .ck.ck-editor__main>.ck-editor__editable:not(.dark) {
+        background-color: white !important;
+        color: #111827 !important;
+    }
+</style>
+{% endblock %}
+
+{% block title %}{{ 'Edit Profile' if profile else 'Create Profile' }} - Admin{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('admin_profiles') }}"
+                        class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </a>
+                    <h1 class="text-xl font-display font-bold text-gray-900 dark:text-white">
+                        {{ 'Edit Profile' if profile else 'Create Profile' }}
+                    </h1>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
+            <form method="POST" id="profile-form">
+                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
+                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Profile Details</h2>
+                </div>
+
+                <div class="p-6 space-y-6">
+                    <!-- Profile Name -->
+                    <div>
+                        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Profile Name *
+                        </label>
+                        <input type="text" id="name" name="name" value="{{ profile.name if profile else '' }}" required
+                            class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="e.g., Software Engineer, Data Scientist">
+                    </div>
+
+                    <!-- Description -->
+                    <div>
+                        <label for="description"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Description
+                        </label>
+                        <textarea id="description" name="description" rows="3"
+                            class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder="Brief description of this profile (optional)">{{ profile.description if profile else '' }}</textarea>
+                    </div>
+
+                    <!-- Display Name -->
+                    <div>
+                        <label for="display_name"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Display Name (Chat Greeting)
+                        </label>
+                        <input type="text" id="display_name" name="display_name"
+                            value="{{ profile.display_name if profile else '' }}"
+                            class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                            placeholder='e.g., "DanGPT" or "John Smith"'>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This name appears in the chat greeting
+                            "Hi! I'm..."</p>
+                    </div>
+
+                    <!-- Introduction -->
+                    <div>
+                        <label for="introduction"
+                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                            Introduction Message
+                        </label>
+
+                        <!-- CKEditor -->
+                        <div id="editor"></div>
+
+                        <!-- Hidden field to store HTML -->
+                        <input type="hidden" id="introduction" name="introduction"
+                            value="{{ profile.introduction if profile else '' }}">
+
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                            Use the editor above to format your introduction message
+                        </p>
+                    </div>
+
+                    <!-- Default Profile Checkbox -->
+                    <div class="flex items-center">
+                        <input type="checkbox" id="is_default" name="is_default" {{ 'checked' if profile and
+                            profile.is_default else '' }}
+                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                        <label for="is_default" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                            Set as default profile
+                        </label>
+                    </div>
+
+                    <!-- Resume Assignment (only for edit mode) -->
+                    {% if profile %}
+                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Assigned Resumes</h3>
+                            <button type="button" onclick="saveResumes()"
+                                class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
+                                Save Assignments
+                            </button>
+                        </div>
+
+                        {% if resumes %}
+                        <div class="space-y-2 mb-6">
+                            {% for resume in resumes %}
+                            <label
+                                class="flex items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
+                                <input type="checkbox" name="resume_ids[]" value="{{ resume.id }}" {{ 'checked' if
+                                    resume.id in assigned_resume_ids else '' }}
+                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded resume-checkbox">
+                                <span class="ml-3 text-sm text-gray-900 dark:text-white flex-1">
+                                    {{ resume.original_filename }}
+                                </span>
+                                <span class="text-xs text-gray-500 dark:text-gray-400">
+                                    {{ resume.uploaded_at.strftime('%Y-%m-%d') }}
+                                </span>
+                            </label>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Primary Resume Selection -->
+                        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+                            <label for="primary_resume_id"
+                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                Primary Resume (for downloads)
+                            </label>
+                            <select id="primary_resume_id" name="primary_resume_id"
+                                class="block w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
+                                <option value="">None</option>
+                                {% for resume in resumes %}
+                                {% if resume.id in assigned_resume_ids %}
+                                <option value="{{ resume.id }}" {{ 'selected' if profile.primary_resume_id==resume.id
+                                    else '' }}>
+                                    {{ resume.original_filename }}
+                                </option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                                This file will be offered for download when users ask for your resume
+                            </p>
+                        </div>
+                        {% else %}
+                        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
+                            <p class="text-sm">No resumes available. Upload some in Settings first.</p>
+                        </div>
+                        {% endif %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div
+                    class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3 rounded-b-xl">
+                    <a href="{{ url_for('admin_profiles') }}"
+                        class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-2 px-6 rounded-lg transition-colors duration-200">
+                        Cancel
+                    </a>
+                    <button type="submit"
+                        class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02]">
+                        {{ 'Update Profile' if profile else 'Create Profile' }}
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- CKEditor 5 CDN -->
+<script src="https://cdn.ckeditor.com/ckeditor5/40.1.0/classic/ckeditor.js"></script>
+
+<script>
+    let editorInstance;
+
+    document.addEventListener('DOMContentLoaded', function () {
+        // Initialize CKEditor
+        ClassicEditor
+            .create(document.querySelector('#editor'), {
+                toolbar: ['bold', 'italic', 'underline', '|', 'link', 'bulletedList', 'numberedList'],
+                placeholder: 'Enter your introduction message...'
+            })
+            .then(editor => {
+                editorInstance = editor;
+
+                // Force dark text color in editor
+                const editableElement = editor.editing.view.document.getRoot();
+                editor.editing.view.change(writer => {
+                    writer.setStyle('color', '#111827', editableElement);
+                });
+
+                // Load existing content
+                const existingContent = document.getElementById('introduction').value;
+                if (existingContent) {
+                    editor.setData(existingContent);
+                }
+            })
+            .catch(error => {
+                console.error('CKEditor initialization error:', error);
+            });
+
+        // Sync content to hidden field on form submit
+        document.getElementById('profile-form').addEventListener('submit', function () {
+            if (editorInstance) {
+                document.getElementById('introduction').value = editorInstance.getData();
+            }
+        });
+
+        {% if profile %}
+        async function saveResumes() {
+            const checkboxes = document.querySelectorAll('.resume-checkbox:checked');
+            const resumeIds = Array.from(checkboxes).map(cb => cb.value);
+
+            try {
+                const formData = new URLSearchParams();
+                resumeIds.forEach(id => {
+                    formData.append('resume_ids[]', id);
+                });
+
+                const response = await fetch('{{ url_for("assign_resumes", profile_id=profile.id) }}', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: formData.toString()
+                });
+
+                const result = await response.json();
+
+                if (response.ok) {
+                    alert('Resumes updated successfully!');
+                } else {
+                    alert('Error: ' + (result.error || 'Failed to update resumes'));
+                }
+            } catch (error) {
+                alert('Error: ' + error.message);
+            }
+        }
+        window.saveResumes = saveResumes;
+        {% endif %}
+    });
+</script>
+{% endblock %}

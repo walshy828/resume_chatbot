@@ -1,0 +1,211 @@
+{% extends "base.html" %}
+
+{% block title %}Analytics - Admin{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('admin_dashboard') }}"
+                        class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </a>
+                    <h1 class="text-xl font-display font-bold text-gray-900 dark:text-white">Analytics</h1>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('admin_logout') }}"
+                        class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white inline-flex items-center space-x-2">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <!-- Filters -->
+        <div
+            class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6 mb-6">
+            <div
+                class="flex flex-col md:flex-row md:items-center md:justify-between space-y-4 md:space-y-0 md:space-x-4">
+                <div class="flex-1">
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Search</label>
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <i data-lucide="search" class="w-5 h-5 text-gray-400"></i>
+                        </div>
+                        <input type="text" id="search-input" placeholder="Search by session ID, IP, or location..."
+                            class="block w-full pl-10 pr-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">Sort By</label>
+                    <select id="sort-select"
+                        class="block w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                        <option value="recent">Most Recent</option>
+                        <option value="oldest">Oldest First</option>
+                        <option value="messages">Most Messages</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sessions List -->
+        <div class="space-y-4" id="sessions-list">
+            {% for session in sessions %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 overflow-hidden session-item"
+                data-session-id="{{ session.id }}" data-started="{{ session.started_at.timestamp() }}"
+                data-messages="{{ session.message_count }}"
+                data-search="{{ session.session_id|lower }} {{ session.ip_address|lower }} {{ session.location|lower }}">
+
+                <!-- Session Header -->
+                <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/50 border-b border-gray-200 dark:border-gray-700">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between space-y-2 md:space-y-0">
+                        <div class="flex items-center space-x-3">
+                            <div
+                                class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+                                <i data-lucide="user" class="w-5 h-5 text-white"></i>
+                            </div>
+                            <div>
+                                <h3 class="font-semibold text-gray-900 dark:text-white font-mono text-sm">{{
+                                    session.session_id[:16] }}...</h3>
+                                <p class="text-xs text-gray-600 dark:text-gray-400">Started {{
+                                    session.started_at.strftime('%Y-%m-%d %H:%M:%S') }}</p>
+                            </div>
+                        </div>
+
+                        <button onclick="toggleSession({{ session.id }})"
+                            class="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center space-x-2 text-sm font-medium">
+                            <span class="view-details-text">View Details</span>
+                            <i data-lucide="chevron-down" class="w-4 h-4 transition-transform"
+                                id="chevron-{{ session.id }}"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Session Info -->
+                <div class="px-6 py-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">IP Address</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white font-mono">{{ session.ip_address }}
+                        </p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Location</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ session.location }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Messages</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{ session.message_count }}</p>
+                    </div>
+                    <div>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">Last Activity</p>
+                        <p class="text-sm font-medium text-gray-900 dark:text-white">{{
+                            session.last_activity.strftime('%Y-%m-%d %H:%M') }}</p>
+                    </div>
+                </div>
+
+                <!-- Conversation History (Hidden by default) -->
+                <div id="conversation-{{ session.id }}" class="hidden border-t border-gray-200 dark:border-gray-700">
+                    <div class="px-6 py-4 bg-gray-50 dark:bg-gray-700/30">
+                        <h4 class="text-sm font-semibold text-gray-900 dark:text-white mb-4">Conversation History</h4>
+                        <div class="space-y-3 max-h-96 overflow-y-auto">
+                            {% for message in session.messages %}
+                            <div
+                                class="flex items-start space-x-3 {% if message.role == 'user' %}flex-row-reverse space-x-reverse{% endif %}">
+                                <div
+                                    class="w-6 h-6 rounded-full bg-gradient-to-br {% if message.role == 'user' %}from-gray-600 to-gray-800{% else %}from-blue-500 to-purple-600{% endif %} flex items-center justify-center flex-shrink-0">
+                                    <i data-lucide="{% if message.role == 'user' %}user{% else %}bot{% endif %}"
+                                        class="w-3 h-3 text-white"></i>
+                                </div>
+                                <div class="flex-1 {% if message.role == 'user' %}text-right{% endif %}">
+                                    <p class="text-xs text-gray-500 dark:text-gray-400 mb-1">{{
+                                        message.timestamp.strftime('%H:%M:%S') }}</p>
+                                    <div
+                                        class="inline-block {% if message.role == 'user' %}bg-gradient-to-r from-blue-500 to-purple-600 text-white{% else %}bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white{% endif %} rounded-lg px-3 py-2 text-sm max-w-lg">
+                                        {{ message.content }}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% else %}
+            <div
+                class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-12 text-center">
+                <i data-lucide="inbox" class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600"></i>
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-white mb-2">No Sessions Yet</h3>
+                <p class="text-gray-600 dark:text-gray-400">Sessions will appear here once users start chatting</p>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</div>
+
+<script>
+    // Toggle conversation visibility
+    function toggleSession(sessionId) {
+        const conversation = document.getElementById(`conversation-${sessionId}`);
+        const chevron = document.getElementById(`chevron-${sessionId}`);
+
+        if (conversation.classList.contains('hidden')) {
+            conversation.classList.remove('hidden');
+            chevron.style.transform = 'rotate(180deg)';
+        } else {
+            conversation.classList.add('hidden');
+            chevron.style.transform = 'rotate(0deg)';
+        }
+
+        // Re-initialize icons
+        lucide.createIcons();
+    }
+
+    // Search functionality
+    const searchInput = document.getElementById('search-input');
+    const sortSelect = document.getElementById('sort-select');
+    const sessionsList = document.getElementById('sessions-list');
+
+    searchInput?.addEventListener('input', filterSessions);
+    sortSelect?.addEventListener('change', sortSessions);
+
+    function filterSessions() {
+        const query = searchInput.value.toLowerCase();
+        const sessions = document.querySelectorAll('.session-item');
+
+        sessions.forEach(session => {
+            const searchText = session.dataset.search;
+            if (searchText.includes(query)) {
+                session.style.display = '';
+            } else {
+                session.style.display = 'none';
+            }
+        });
+    }
+
+    function sortSessions() {
+        const sortBy = sortSelect.value;
+        const sessions = Array.from(document.querySelectorAll('.session-item'));
+
+        sessions.sort((a, b) => {
+            if (sortBy === 'recent') {
+                return parseFloat(b.dataset.started) - parseFloat(a.dataset.started);
+            } else if (sortBy === 'oldest') {
+                return parseFloat(a.dataset.started) - parseFloat(b.dataset.started);
+            } else if (sortBy === 'messages') {
+                return parseInt(b.dataset.messages) - parseInt(a.dataset.messages);
+            }
+        });
+
+        sessions.forEach(session => sessionsList.appendChild(session));
+    }
+</script>
+{% endblock %}

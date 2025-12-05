@@ -1,0 +1,95 @@
+{% extends "base.html" %}
+
+{% block title %}Profiles - Admin{% endblock %}
+
+{% block content %}
+<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+    <!-- Navigation -->
+    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('admin_dashboard') }}"
+                        class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
+                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
+                    </a>
+                    <h1 class="text-xl font-display font-bold text-gray-900 dark:text-white">Resume Profiles</h1>
+                </div>
+
+                <div class="flex items-center space-x-4">
+                    <a href="{{ url_for('create_profile') }}"
+                        class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 px-4 rounded-lg transition-all duration-200 inline-flex items-center space-x-2">
+                        <i data-lucide="plus" class="w-4 h-4"></i>
+                        <span>Create Profile</span>
+                    </a>
+                    <a href="{{ url_for('admin_logout') }}"
+                        class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white inline-flex items-center space-x-2">
+                        <i data-lucide="log-out" class="w-5 h-5"></i>
+                        <span class="hidden sm:inline">Logout</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {% if profiles %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {% for profile in profiles %}
+            <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+                <div class="flex items-start justify-between mb-4">
+                    <div class="flex-1">
+                        <div class="flex items-center space-x-2 mb-2">
+                            <h3 class="text-lg font-semibold text-gray-900 dark:text-white">{{ profile.name }}</h3>
+                            {% if profile.is_default %}
+                            <span
+                                class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 dark:bg-blue-900/30 text-blue-800 dark:text-blue-400">
+                                Default
+                            </span>
+                            {% endif %}
+                        </div>
+                        {% if profile.description %}
+                        <p class="text-sm text-gray-600 dark:text-gray-400">{{ profile.description }}</p>
+                        {% endif %}
+                    </div>
+                </div>
+
+                <div class="flex items-center text-sm text-gray-500 dark:text-gray-400 mb-4">
+                    <i data-lucide="file-text" class="w-4 h-4 mr-1"></i>
+                    <span>{{ profile.resumes.count() }} resume{{ 's' if profile.resumes.count() != 1 else '' }}</span>
+                </div>
+
+                <div class="flex items-center space-x-2">
+                    <a href="{{ url_for('edit_profile', profile_id=profile.id) }}"
+                        class="flex-1 text-center bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600 font-medium py-2 px-4 rounded-lg transition-colors duration-200 text-sm">
+                        Edit
+                    </a>
+                    {% if not profile.is_default %}
+                    <form method="POST" action="{{ url_for('delete_profile', profile_id=profile.id) }}"
+                        onsubmit="return confirm('Are you sure you want to delete this profile?');">
+                        <button type="submit"
+                            class="text-red-600 dark:text-red-400 hover:text-red-700 dark:hover:text-red-300 p-2">
+                            <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        {% else %}
+        <div class="text-center py-16">
+            <i data-lucide="folder-open" class="w-16 h-16 mx-auto mb-4 text-gray-400 dark:text-gray-600"></i>
+            <h3 class="text-lg font-medium text-gray-900 dark:text-white mb-2">No Profiles Yet</h3>
+            <p class="text-gray-500 dark:text-gray-400 mb-4">Get started by creating your first resume profile</p>
+            <a href="{{ url_for('create_profile') }}"
+                class="inline-flex items-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-all duration-200">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span>Create Profile</span>
+            </a>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

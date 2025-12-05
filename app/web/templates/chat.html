@@ -1,0 +1,438 @@
+{% extends "base.html" %}
+
+{% block title %}Chat - {{ settings.chatbot_name }}{% endblock %}
+
+{% block extra_head %}
+<!-- Socket.IO -->
+<script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+{% endblock %}
+
+{% block content %}
+<div class="h-screen flex flex-col overflow-hidden bg-white dark:bg-gray-900">
+    <!-- Header -->
+    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-none z-10">
+        <div class="max-w-4xl mx-auto px-4 py-4">
+            <div class="flex items-center justify-between">
+                <div class="flex items-center space-x-3">
+                    <div
+                        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="bot" class="w-6 h-6 text-white"></i>
+                    </div>
+                    <div>
+                        <h1 class="text-lg font-display font-semibold text-gray-900 dark:text-white">{{
+                            settings.chatbot_name }}</h1>
+                        <p class="text-sm text-gray-500 dark:text-gray-400">
+                            <span id="status-indicator"
+                                class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                            <span id="status-text">Online</span>
+                        </p>
+                    </div>
+                </div>
+
+                <div class="flex items-center space-x-3">
+                    <!-- Profile Selector -->
+                    <div class="relative">
+                        <select id="profile-selector"
+                            class="appearance-none bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
+                            <option value="">Loading...</option>
+                        </select>
+                        <div
+                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                        </div>
+                    </div>
+
+                    <!-- Mode Toggle -->
+                    <div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
+                        <button id="mode-conversational"
+                            class="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
+                            onclick="setMode('conversational')">
+                            Conversational
+                        </button>
+                        <button id="mode-simple"
+                            class="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                            onclick="setMode('simple')">
+                            Simple
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Chat Messages Container -->
+    <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900" id="chat-container">
+        <div class="max-w-4xl mx-auto px-4 py-6">
+            <!-- Welcome Message -->
+            <div class="flex items-center justify-center p-8">
+                <div
+                    class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 max-w-2xl w-full text-center">
+                    <div
+                        class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
+                        <i data-lucide="sparkles" class="w-8 h-8 text-white"></i>
+                    </div>
+                    <h2 id="greeting-name" class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
+                        Hi! I'm AI Assistant
+                    </h2>
+                    <p id="greeting-intro" class="text-gray-600 dark:text-gray-400 leading-relaxed">
+                        I'd love to chat about my background and experience. What would you like to know?
+                    </p>
+                </div>
+            </div>
+            <!-- Messages will be appended here -->
+            <div id="messages" class="space-y-4">
+            </div>
+
+            <!-- Typing Indicator -->
+            <div id="typing-indicator" class="hidden">
+                <div class="flex items-start space-x-3">
+                    <div
+                        class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+                    </div>
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-200 dark:border-gray-700 px-4 py-3">
+                        <div class="flex space-x-1">
+                            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
+                                style="animation-delay: 0ms"></div>
+                            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
+                                style="animation-delay: 150ms"></div>
+                            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
+                                style="animation-delay: 300ms"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Input Area -->
+    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-none">
+        <div class="max-w-4xl mx-auto px-4 py-4">
+            <form id="chat-form" class="flex items-end space-x-3">
+                <div class="flex-1 relative">
+                    <textarea id="message-input" rows="1" placeholder="Type your message..."
+                        class="w-full px-4 py-3 pr-12 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
+                        style="max-height: 150px;"></textarea>
+                </div>
+                <button type="submit" id="send-button"
+                    class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full p-3 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
+                    <i data-lucide="send" class="w-5 h-5"></i>
+                </button>
+            </form>
+            <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
+                Powered by AI • Your conversations are tracked for analytics
+            </p>
+        </div>
+    </footer>
+</div>
+
+<script>
+    // Socket.IO connection
+    let sessionId = localStorage.getItem('chat_session_id') || null;
+    const socket = io({
+        query: { session_id: sessionId }
+    });
+
+    const messagesContainer = document.getElementById('messages');
+    const chatContainer = document.getElementById('chat-container');
+    const messageInput = document.getElementById('message-input');
+    const chatForm = document.getElementById('chat-form');
+    const sendButton = document.getElementById('send-button');
+    const typingIndicator = document.getElementById('typing-indicator');
+    const statusText = document.getElementById('status-text');
+    const statusIndicator = document.getElementById('status-indicator');
+
+    // Connection handlers
+    socket.on('connect', () => {
+        statusText.textContent = 'Online';
+        statusIndicator.classList.remove('bg-gray-400');
+        statusIndicator.classList.add('bg-green-500');
+    });
+
+    socket.on('disconnect', () => {
+        statusText.textContent = 'Offline';
+        statusIndicator.classList.remove('bg-green-500');
+        statusIndicator.classList.add('bg-gray-400');
+    });
+
+    socket.on('connected', (data) => {
+        sessionId = data.session_id;
+        localStorage.setItem('chat_session_id', sessionId);
+    });
+
+    // Message handlers
+    socket.on('message', (data) => {
+        addMessage(data.role, data.content, data.timestamp);
+    });
+
+    socket.on('typing', (data) => {
+        if (data.typing) {
+            typingIndicator.classList.remove('hidden');
+        } else {
+            typingIndicator.classList.add('hidden');
+        }
+        scrollToBottom();
+    });
+
+    // Scroll to bottom function - SINGLE DEFINITION
+    // Scroll to bottom function - SINGLE DEFINITION
+    function scrollToBottom(smooth = true) {
+        const scroll = () => {
+            // Try to scroll to the typing indicator if it's visible
+            if (!typingIndicator.classList.contains('hidden')) {
+                typingIndicator.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+                return;
+            }
+
+            // Otherwise scroll to the last message
+            const lastMessage = messagesContainer.lastElementChild;
+            if (lastMessage) {
+                lastMessage.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+            } else {
+                // Fallback for empty chat
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        };
+
+        // Attempt scroll immediately
+        scroll();
+
+        // Attempt again after a slight delay
+        requestAnimationFrame(() => {
+            setTimeout(scroll, 50);
+            setTimeout(scroll, 150);
+        });
+    }
+
+    // Add message to chat
+    function addMessage(role, content, timestamp) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'flex items-start space-x-3';
+
+        // Convert URLs to clickable links
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        const contentWithLinks = escapeHtml(content).replace(urlRegex, '<a href="$1" target="_blank" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-500 break-all">$1</a>');
+
+        if (role === 'user') {
+            messageDiv.classList.add('flex-row-reverse', 'space-x-reverse');
+            messageDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="user" class="w-4 h-4 text-white"></i>
+                </div>
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-sm px-4 py-3 max-w-lg">
+                    <p class="text-sm leading-relaxed">${escapeHtml(content)}</p>
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                    <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-200 dark:border-gray-700 px-4 py-3 max-w-lg">
+                    <p class="text-sm leading-relaxed text-gray-900 dark:text-gray-100">${contentWithLinks}</p>
+                </div>
+            `;
+        }
+
+        messagesContainer.appendChild(messageDiv);
+        lucide.createIcons();
+
+        // Scroll after adding message
+        scrollToBottom();
+    }
+
+    // Send message
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        // Send to server
+        socket.emit('send_message', {
+            session_id: sessionId,
+            message: message,
+            mode: currentMode
+        });
+
+        // Clear input
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        messageInput.focus();
+    });
+
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+
+    // Enter to send, Shift+Enter for new line
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+
+    // Escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Mode handling
+    let currentMode = 'conversational';
+    let currentProfileId = null;
+
+    function setMode(mode) {
+        currentMode = mode;
+
+        // Update UI
+        const convBtn = document.getElementById('mode-conversational');
+        const simpleBtn = document.getElementById('mode-simple');
+
+        if (mode === 'conversational') {
+            convBtn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            convBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+
+            simpleBtn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            simpleBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+        } else {
+            simpleBtn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            simpleBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+
+            convBtn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            convBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+        }
+    }
+
+    // Profile management
+    const profileSelector = document.getElementById('profile-selector');
+    let currentProfile = null;
+
+    // Update greeting based on selected profile
+    function updateGreeting(profile) {
+        const greetingName = document.getElementById('greeting-name');
+        const greetingIntro = document.getElementById('greeting-intro');
+
+        if (profile && profile.display_name) {
+            greetingName.textContent = `Hi! I'm ${profile.display_name}`;
+        } else {
+            greetingName.textContent = 'Hi! I\'m AI Assistant';
+        }
+
+        if (profile && profile.introduction) {
+            // Render HTML directly (already sanitized on server)
+            greetingIntro.innerHTML = profile.introduction;
+        } else {
+            greetingIntro.textContent = 'I\'d love to chat about my background and experience. What would you like to know?';
+        }
+    }
+
+    async function loadProfiles() {
+        try {
+            const response = await fetch('/api/profiles');
+            const profiles = await response.json();
+
+            // Clear existing options
+            profileSelector.innerHTML = '';
+
+            // Get saved profile from localStorage
+            const savedProfileId = localStorage.getItem('selected_profile_id');
+
+            // Populate options
+            profiles.forEach(profile => {
+                const option = document.createElement('option');
+                option.value = profile.id;
+                option.textContent = profile.name + (profile.is_default ? ' (Default)' : '');
+
+                // Select saved profile or default
+                if ((savedProfileId && profile.id == savedProfileId) || (!savedProfileId && profile.is_default)) {
+                    option.selected = true;
+                    currentProfileId = profile.id;
+                    currentProfile = profile;
+                    updateGreeting(profile);
+                }
+
+                profileSelector.appendChild(option);
+            });
+
+            // Re-render icons after DOM update
+            lucide.createIcons();
+        } catch (error) {
+            console.error('Error loading profiles:', error);
+            profileSelector.innerHTML = '<option value="">Error loading profiles</option>';
+        }
+    }
+
+    // Handle profile selection change
+    profileSelector.addEventListener('change', async (e) => {
+        currentProfileId = e.target.value ? parseInt(e.target.value) : null;
+        localStorage.setItem('selected_profile_id', currentProfileId);
+
+        // Fetch profile details to update greeting
+        if (currentProfileId) {
+            try {
+                const response = await fetch('/api/profiles');
+                const profiles = await response.json();
+                currentProfile = profiles.find(p => p.id == currentProfileId);
+                updateGreeting(currentProfile);
+            } catch (error) {
+                console.error('Error fetching profile:', error);
+            }
+        }
+    });
+
+    // Load profiles on page load
+    loadProfiles();
+
+    // Send message
+    chatForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+
+        const message = messageInput.value.trim();
+        if (!message) return;
+
+        // Send to server with mode and profile
+        socket.emit('send_message', {
+            session_id: sessionId,
+            message: message,
+            mode: currentMode,
+            profile_id: currentProfileId
+        });
+
+        // Clear input
+        messageInput.value = '';
+        messageInput.style.height = 'auto';
+        messageInput.focus();
+    });
+
+    // Auto-resize textarea
+    messageInput.addEventListener('input', function () {
+        this.style.height = 'auto';
+        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+    });
+
+    // Enter to send, Shift+Enter for new line
+    messageInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' && !e.shiftKey) {
+            e.preventDefault();
+            chatForm.dispatchEvent(new Event('submit'));
+        }
+    });
+
+    // Escape HTML
+    function escapeHtml(text) {
+        const div = document.createElement('div');
+        div.textContent = text;
+        return div.innerHTML;
+    }
+
+    // Initial scroll on page load
+    window.addEventListener('load', () => scrollToBottom(false));
+    scrollToBottom(false);
+</script>
+{% endblock %}

@@ -1,0 +1,68 @@
+DANIEL P. WILLIAMS
+Software Engineer & Full-Stack Developer
+Email: dan@example.com | Phone: (555) 123-4567 | Location: San Francisco, CA
+
+PROFESSIONAL SUMMARY
+Experienced software engineer with 8+ years of expertise in full-stack development, cloud architecture, and AI/ML integration. Passionate about building scalable applications and leading technical teams. Proven track record of delivering high-impact projects in fast-paced startup environments.
+
+TECHNICAL SKILLS
+- Languages: Python, JavaScript, TypeScript, Java, Go
+- Frontend: React, Vue.js, TailwindCSS, Next.js
+- Backend: Flask, Django, Node.js, Express, FastAPI
+- Databases: PostgreSQL, MongoDB, Redis, SQLite
+- Cloud: AWS (EC2, S3, Lambda), Google Cloud Platform, Azure
+- DevOps: Docker, Kubernetes, CI/CD, GitHub Actions
+- AI/ML: TensorFlow, PyTorch, OpenAI API, Google Gemini
+
+PROFESSIONAL EXPERIENCE
+
+Senior Software Engineer | TechCorp Inc. | San Francisco, CA
+January 2021 - Present
+• Led development of microservices architecture serving 2M+ daily active users
+• Implemented AI-powered recommendation system increasing user engagement by 35%
+• Mentored team of 5 junior engineers and conducted code reviews
+• Reduced infrastructure costs by 40% through optimization and cloud resource management
+• Built real-time analytics dashboard using React and WebSocket technology
+
+Full-Stack Developer | StartupXYZ | Remote
+March 2018 - December 2020
+• Developed and launched MVP for SaaS platform from scratch using React and Django
+• Integrated payment processing with Stripe, handling $500K+ in monthly transactions
+• Implemented automated testing suite achieving 85% code coverage
+• Collaborated with product team to define technical requirements and roadmap
+• Managed AWS infrastructure and deployment pipelines
+
+Software Developer | Digital Solutions Ltd. | New York, NY
+June 2016 - February 2018
+• Built responsive web applications using modern JavaScript frameworks
+• Developed RESTful APIs and integrated third-party services
+• Participated in agile development process with 2-week sprints
+• Improved application performance by 50% through optimization techniques
+
+EDUCATION
+
+Bachelor of Science in Computer Science
+University of California, Berkeley | 2012 - 2016
+GPA: 3.8/4.0 | Dean's List (4 semesters)
+
+PROJECTS
+
+AI Resume Chatbot (2024)
+• Built intelligent chatbot using Google Gemini API for interactive resume presentations
+• Implemented real-time chat with Socket.IO and Flask backend
+• Features admin panel with analytics, session tracking, and conversation history
+• Tech stack: Python, Flask, TailwindCSS, SQLite, Google Gemini
+
+E-Commerce Platform (2023)
+• Developed full-featured online store with cart, checkout, and inventory management
+• Integrated Stripe payments and SendGrid email notifications
+• Implemented product search with Elasticsearch
+• Tech stack: Next.js, Node.js, PostgreSQL, Redis
+
+CERTIFICATIONS
+• AWS Certified Solutions Architect - Associate (2022)
+• Google Cloud Professional Developer (2021)
+• MongoDB Certified Developer (2020)
+
+INTERESTS
+Open source contribution, AI/ML research, technical writing, mentoring, hiking

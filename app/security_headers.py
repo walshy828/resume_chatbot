@@ -25,8 +25,8 @@ def init_security_headers(app: Flask):
         # Allow self, inline styles (for dynamic UI), and specific external resources
         csp = (
             "default-src 'self'; "
-            "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://unpkg.com https://cdn.tailwindcss.com; "
-            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
+            "script-src 'self' 'unsafe-inline' https://cdn.socket.io https://unpkg.com https://cdn.tailwindcss.com https://cdn.ckeditor.com; "
+            "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com https://cdn.ckeditor.com; "
             "font-src 'self' https://fonts.gstatic.com https://r2cdn.perplexity.ai data:; "
             "img-src 'self' data: https:; "
             "connect-src 'self' wss: ws: https://unpkg.com https://cdn.socket.io; "

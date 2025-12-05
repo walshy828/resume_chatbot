@@ -17,17 +17,59 @@ class User(UserMixin, db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(80), unique=True, nullable=False)
+    email = db.Column(db.String(120), unique=True, nullable=True)
     password_hash = db.Column(db.String(255), nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
+    # Security fields
+    failed_login_attempts = db.Column(db.Integer, default=0)
+    locked_until = db.Column(db.DateTime, nullable=True)
+    password_changed_at = db.Column(db.DateTime, default=datetime.utcnow)
+    must_change_password = db.Column(db.Boolean, default=False)
+    last_login_at = db.Column(db.DateTime, nullable=True)
+    last_login_ip = db.Column(db.String(45), nullable=True)
+    is_active = db.Column(db.Boolean, default=True)
+    
     def set_password(self, password):
-        """Hash password with bcrypt and salt"""
-        salt = bcrypt.gensalt()
+        """Hash password with bcrypt and salt (14 rounds for enhanced security)"""
+        salt = bcrypt.gensalt(rounds=14)  # Increased from default 12
         self.password_hash = bcrypt.hashpw(password.encode('utf-8'), salt).decode('utf-8')
+        self.password_changed_at = datetime.utcnow()
     
     def check_password(self, password):
         """Verify password against hash"""
         return bcrypt.checkpw(password.encode('utf-8'), self.password_hash.encode('utf-8'))
+    
+    def is_locked(self):
+        """Check if account is currently locked"""
+        if self.locked_until is None:
+            return False
+        return datetime.utcnow() < self.locked_until
+    
+    def lock_account(self, duration_minutes=30):
+        """Lock account for specified duration"""
+        from datetime import timedelta
+        self.locked_until = datetime.utcnow() + timedelta(minutes=duration_minutes)
+    
+    def unlock_account(self):
+        """Unlock account and reset failed attempts"""
+        self.locked_until = None
+        self.failed_login_attempts = 0
+    
+    def record_failed_login(self):
+        """Record a failed login attempt"""
+        self.failed_login_attempts += 1
+        # Lock account after 5 failed attempts
+        if self.failed_login_attempts >= 5:
+            self.lock_account(duration_minutes=30)
+    
+    def record_successful_login(self, ip_address=None):
+        """Record a successful login"""
+        self.failed_login_attempts = 0
+        self.locked_until = None
+        self.last_login_at = datetime.utcnow()
+        if ip_address:
+            self.last_login_ip = ip_address
 
 
 class ChatSession(db.Model):

@@ -5,13 +5,16 @@ from flask import Flask, render_template, request, jsonify, redirect, url_for, f
 from flask_socketio import SocketIO, emit, join_room
 from flask_login import login_user, logout_user, current_user
 from flask_migrate import Migrate
+from flask_wtf.csrf import CSRFProtect
 from werkzeug.utils import secure_filename
 import google.generativeai as genai
 
 from config import Config
 from app.models import db, User, ChatSession, ChatMessage, Settings, Resume, Profile
-from app.auth import login_manager, admin_required, init_default_admin
-
+from app.auth import login_manager, admin_required, init_default_admin, validate_new_password
+from app.rate_limiter import init_limiter, RATE_LIMITS
+from app.security_headers import init_security_headers
+from app import security_logger as sec_log
 # Initialize Flask app
 app = Flask(__name__, 
             template_folder='web/templates',
@@ -21,10 +24,30 @@ app.config.from_object(Config)
 # Initialize extensions
 db.init_app(app)
 login_manager.init_app(app)
-socketio = SocketIO(app, cors_allowed_origins="*")
+
+# Initialize CSRF protection (will be applied manually to form routes)
+csrf = CSRFProtect()
+csrf.init_app(app)
+
+# Initialize rate limiter
+limiter = init_limiter(app)
+
+# Initialize security headers
+init_security_headers(app)
+
+# Initialize SocketIO with environment-based CORS and threading mode (Python 3.13 compatible)
+# SocketIO routes are automatically exempt from CSRF
+socketio = SocketIO(app, cors_allowed_origins=app.config['CORS_ALLOWED_ORIGINS'], async_mode='threading')
 
 # Initialize Flask-Migrate for database migrations
 migrate = Migrate(app, db)
+
+
+
+
+
+# Create logs directory
+os.makedirs(os.path.join(os.path.dirname(__file__), '..', 'logs'), exist_ok=True)
 
 # Configure Google Gemini
 if app.config['GEMINI_API_KEY']:
@@ -246,22 +269,66 @@ def uploaded_file(filename):
 # ============================================================================
 
 @app.route('/admin/login', methods=['GET', 'POST'])
+@limiter.limit(RATE_LIMITS['login'])
 def admin_login():
-    """Admin login page"""
+    """Admin login page with enhanced security"""
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard'))
     
     if request.method == 'POST':
-        username = request.form.get('username')
-        password = request.form.get('password')
+        username = request.form.get('username', '').strip()
+        password = request.form.get('password', '')
+        
+        if not username or not password:
+            flash('Please provide both username and password', 'error')
+            return render_template('admin/login.html')
         
         user = User.query.filter_by(username=username).first()
         
-        if user and user.check_password(password):
-            login_user(user)
-            flash('Login successful!', 'success')
-            return redirect(url_for('admin_dashboard'))
+        if user:
+            # Check if account is locked
+            if user.is_locked():
+                sec_log.log_failed_login(username, 'Account locked')
+                flash('Account is temporarily locked due to too many failed login attempts. Please try again later.', 'error')
+                return render_template('admin/login.html')
+            
+            # Check if account is active
+            if not user.is_active:
+                sec_log.log_failed_login(username, 'Account deactivated')
+                flash('This account has been deactivated. Please contact an administrator.', 'error')
+                return render_template('admin/login.html')
+            
+            # Verify password
+            if user.check_password(password):
+                # Successful login
+                user.record_successful_login(ip_address=sec_log.get_client_ip())
+                db.session.commit()
+                
+                login_user(user)
+                sec_log.log_successful_login(username)
+                flash('Login successful!', 'success')
+                
+                # Redirect to password change if required
+                if user.must_change_password:
+                    flash('You must change your password before continuing.', 'warning')
+                    return redirect(url_for('change_password'))
+                
+                return redirect(url_for('admin_dashboard'))
+            else:
+                # Failed login - wrong password
+                user.record_failed_login()
+                db.session.commit()
+                
+                if user.is_locked():
+                    sec_log.log_account_locked(username)
+                    flash('Too many failed login attempts. Account has been locked for 30 minutes.', 'error')
+                else:
+                    remaining_attempts = 5 - user.failed_login_attempts
+                    sec_log.log_failed_login(username, 'Invalid password')
+                    flash(f'Invalid username or password. {remaining_attempts} attempts remaining.', 'error')
         else:
+            # User not found
+            sec_log.log_failed_login(username, 'User not found')
             flash('Invalid username or password', 'error')
     
     return render_template('admin/login.html')
@@ -270,9 +337,210 @@ def admin_login():
 @admin_required
 def admin_logout():
     """Admin logout"""
+    username = current_user.username
     logout_user()
+    sec_log.log_admin_action('Logout', username)
     flash('You have been logged out.', 'info')
     return redirect(url_for('index'))
+
+@app.route('/admin/change-password', methods=['GET', 'POST'])
+@admin_required
+def change_password():
+    """Change password page"""
+    if request.method == 'POST':
+        current_password = request.form.get('current_password', '')
+        new_password = request.form.get('new_password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        
+        # Validate current password
+        if not current_user.check_password(current_password):
+            flash('Current password is incorrect', 'error')
+            return render_template('admin/change_password.html')
+        
+        # Validate new password matches confirmation
+        if new_password != confirm_password:
+            flash('New passwords do not match', 'error')
+            return render_template('admin/change_password.html')
+        
+        # Validate password strength
+        is_valid, errors = validate_new_password(new_password, current_user.username)
+        if not is_valid:
+            for error in errors:
+                flash(error, 'error')
+            return render_template('admin/change_password.html')
+        
+        # Update password
+        current_user.set_password(new_password)
+        current_user.must_change_password = False
+        db.session.commit()
+        
+        sec_log.log_password_change(current_user.username)
+        flash('Password changed successfully!', 'success')
+        return redirect(url_for('admin_dashboard'))
+    
+    return render_template('admin/change_password.html')
+
+# ============================================================================
+# USER MANAGEMENT ROUTES
+# ============================================================================
+
+@app.route('/admin/users')
+@admin_required
+def admin_users():
+    """User management page"""
+    users = User.query.order_by(User.created_at.desc()).all()
+    return render_template('admin/users.html', users=users)
+
+@app.route('/admin/users/create', methods=['GET', 'POST'])
+@admin_required
+@limiter.limit(RATE_LIMITS['admin_action'])
+def create_user():
+    """Create new user"""
+    if request.method == 'POST':
+        username = request.form.get('username', '').strip()
+        email = request.form.get('email', '').strip()
+        password = request.form.get('password', '')
+        confirm_password = request.form.get('confirm_password', '')
+        must_change_password = request.form.get('must_change_password') == 'on'
+        
+        # Validate inputs
+        if not username:
+            flash('Username is required', 'error')
+            return render_template('admin/user_edit.html', user=None)
+        
+        if not password:
+            flash('Password is required', 'error')
+            return render_template('admin/user_edit.html', user=None)
+        
+        # Check if username already exists
+        if User.query.filter_by(username=username).first():
+            flash('Username already exists', 'error')
+            return render_template('admin/user_edit.html', user=None)
+        
+        # Check if email already exists (if provided)
+        if email and User.query.filter_by(email=email).first():
+            flash('Email already exists', 'error')
+            return render_template('admin/user_edit.html', user=None)
+        
+        # Validate password matches confirmation
+        if password != confirm_password:
+            flash('Passwords do not match', 'error')
+            return render_template('admin/user_edit.html', user=None)
+        
+        # Validate password strength
+        is_valid, errors = validate_new_password(password, username)
+        if not is_valid:
+            for error in errors:
+                flash(error, 'error')
+            return render_template('admin/user_edit.html', user=None)
+        
+        # Create user
+        user = User(
+            username=username,
+            email=email if email else None,
+            must_change_password=must_change_password
+        )
+        user.set_password(password)
+        db.session.add(user)
+        db.session.commit()
+        
+        sec_log.log_user_created(username, current_user.username)
+        flash(f'User {username} created successfully!', 'success')
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/user_edit.html', user=None)
+
+@app.route('/admin/users/<int:user_id>/edit', methods=['GET', 'POST'])
+@admin_required
+@limiter.limit(RATE_LIMITS['admin_action'])
+def edit_user(user_id):
+    """Edit user"""
+    user = User.query.get_or_404(user_id)
+    
+    if request.method == 'POST':
+        new_username = request.form.get('username', '').strip()
+        new_email = request.form.get('email', '').strip()
+        is_active = request.form.get('is_active') == 'on'
+        new_password = request.form.get('new_password', '')
+        
+        fields_changed = []
+        
+        # Update username if changed
+        if new_username and new_username != user.username:
+            if User.query.filter_by(username=new_username).first():
+                flash('Username already exists', 'error')
+                return render_template('admin/user_edit.html', user=user)
+            user.username = new_username
+            fields_changed.append('username')
+        
+        # Update email if changed
+        if new_email != (user.email or ''):
+            if new_email and User.query.filter(User.email == new_email, User.id != user_id).first():
+                flash('Email already exists', 'error')
+                return render_template('admin/user_edit.html', user=user)
+            user.email = new_email if new_email else None
+            fields_changed.append('email')
+        
+        # Update active status
+        if is_active != user.is_active:
+            user.is_active = is_active
+            fields_changed.append('is_active')
+            if not is_active:
+                user.unlock_account()  # Unlock if deactivating
+        
+        # Update password if provided
+        if new_password:
+            is_valid, errors = validate_new_password(new_password, user.username)
+            if not is_valid:
+                for error in errors:
+                    flash(error, 'error')
+                return render_template('admin/user_edit.html', user=user)
+            
+            user.set_password(new_password)
+            user.must_change_password = request.form.get('must_change_password') == 'on'
+            fields_changed.append('password')
+        
+        db.session.commit()
+        
+        if fields_changed:
+            sec_log.log_user_updated(user.username, current_user.username, fields_changed)
+        
+        flash(f'User {user.username} updated successfully!', 'success')
+        return redirect(url_for('admin_users'))
+    
+    return render_template('admin/user_edit.html', user=user)
+
+@app.route('/admin/users/<int:user_id>/delete', methods=['POST'])
+@admin_required
+@limiter.limit(RATE_LIMITS['admin_action'])
+def delete_user(user_id):
+    """Delete/deactivate user"""
+    user = User.query.get_or_404(user_id)
+    
+    # Prevent deleting yourself
+    if user.id == current_user.id:
+        flash('You cannot delete your own account', 'error')
+        return redirect(url_for('admin_users'))
+    
+    # Deactivate instead of delete to preserve audit trail
+    user.is_active = False
+    db.session.commit()
+    
+    sec_log.log_user_deleted(user.username, current_user.username)
+    flash(f'User {user.username} has been deactivated', 'success')
+    return redirect(url_for('admin_users'))
+
+@app.route('/admin/users/<int:user_id>/unlock', methods=['POST'])
+@admin_required
+def unlock_user(user_id):
+    """Unlock a locked user account"""
+    user = User.query.get_or_404(user_id)
+    user.unlock_account()
+    db.session.commit()
+    
+    sec_log.log_admin_action('Unlock account', current_user.username, f'Unlocked user: {user.username}')
+    flash(f'User {user.username} has been unlocked', 'success')
+    return redirect(url_for('admin_users'))
 
 @app.route('/admin')
 @admin_required
@@ -610,7 +878,54 @@ def view_session(session_id):
 
 @socketio.on('connect')
 def handle_connect():
-    """Handle client connection"""
+    """
+    Handle client connection with CSWSH protection.
+    
+    Security measures:
+    1. Strict origin validation against whitelist
+    2. Referer header validation
+    3. Session validation for authenticated users
+    """
+    # Get origin from headers
+    origin = request.headers.get('Origin')
+    referer = request.headers.get('Referer')
+    
+    # Strict origin validation
+    allowed_origins = app.config['CORS_ALLOWED_ORIGINS']
+    
+    # Check Origin header (primary check)
+    if origin:
+        if origin not in allowed_origins:
+            log_security_event(
+                'websocket_rejected',
+                f'Rejected WebSocket connection from unauthorized origin: {origin}',
+                ip_address=request.remote_addr,
+                severity='warning'
+            )
+            return False  # Reject connection
+    
+    # Fallback to Referer header check if no Origin
+    elif referer:
+        referer_origin = '/'.join(referer.split('/')[:3])  # Extract origin from referer
+        if referer_origin not in allowed_origins:
+            log_security_event(
+                'websocket_rejected',
+                f'Rejected WebSocket connection from unauthorized referer: {referer}',
+                ip_address=request.remote_addr,
+                severity='warning'
+            )
+            return False  # Reject connection
+    
+    # If neither Origin nor Referer is present, reject (potential attack)
+    else:
+        log_security_event(
+            'websocket_rejected',
+            'Rejected WebSocket connection with no Origin or Referer header',
+            ip_address=request.remote_addr,
+            severity='warning'
+        )
+        return False  # Reject connection
+    
     # Generate or retrieve session ID
     session_id = request.args.get('session_id') or str(uuid.uuid4())
     join_room(session_id)
@@ -630,6 +945,13 @@ def handle_connect():
         )
         db.session.add(session)
         db.session.commit()
+        
+        log_security_event(
+            'websocket_connected',
+            f'New WebSocket session created',
+            ip_address=ip_address,
+            severity='info'
+        )
     
     emit('connected', {'session_id': session_id})
 

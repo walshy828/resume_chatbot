@@ -33,7 +33,30 @@ class Config:
     DEFAULT_ADMIN_PASSWORD = os.getenv('DEFAULT_ADMIN_PASSWORD', 'changeme123')
     
     # Session settings
-    PERMANENT_SESSION_LIFETIME = 3600  # 1 hour
-    SESSION_COOKIE_SECURE = False  # Set to True in production with HTTPS
+    PERMANENT_SESSION_LIFETIME = int(os.getenv('SESSION_LIFETIME', 3600))  # 1 hour default
+    SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Lax'
+    SESSION_COOKIE_SAMESITE = 'Strict'  # Changed from 'Lax' for better security
+    SESSION_REFRESH_EACH_REQUEST = True
+    
+    # CSRF Protection
+    WTF_CSRF_ENABLED = True
+    WTF_CSRF_TIME_LIMIT = None  # Use session lifetime
+    WTF_CSRF_SSL_STRICT = SESSION_COOKIE_SECURE
+    WTF_CSRF_CHECK_DEFAULT = False  # Don't check by default, we'll use decorators
+
+    
+    # CORS Configuration
+    CORS_ALLOWED_ORIGINS = os.getenv('CORS_ALLOWED_ORIGINS', 'http://localhost:8080,http://127.0.0.1:8080,http://localhost:8181,http://127.0.0.1:8181').split(',')
+
+    CORS_ALLOW_CREDENTIALS = True
+    
+    # Rate Limiting
+    RATELIMIT_STORAGE_URL = os.getenv('RATELIMIT_STORAGE_URL', 'memory://')
+    RATELIMIT_STRATEGY = 'fixed-window'
+    
+    # Security Settings
+    BCRYPT_LOG_ROUNDS = int(os.getenv('BCRYPT_LOG_ROUNDS', 14))
+    MAX_LOGIN_ATTEMPTS = int(os.getenv('MAX_LOGIN_ATTEMPTS', 5))
+    ACCOUNT_LOCKOUT_DURATION = int(os.getenv('ACCOUNT_LOCKOUT_DURATION', 30))  # minutes
+

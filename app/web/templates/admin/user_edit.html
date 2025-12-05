@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+
+{% block title %}{% if user %}Edit User{% else %}Create User{% endif %}{% endblock %}
+
+{% block content %}
+<div class="container mx-auto px-4 py-8 max-w-2xl">
+    <!-- Header -->
+    <div class="mb-8">
+        <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white mb-2">
+            {% if user %}Edit User: {{ user.username }}{% else %}Create New User{% endif %}
+        </h1>
+        <p class="text-gray-600 dark:text-gray-400">
+            {% if user %}Update user information and permissions{% else %}Add a new admin user to the system{% endif %}
+        </p>
+    </div>
+
+    <!-- User Form -->
+    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8">
+        <form method="POST" class="space-y-6">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Username -->
+            <div>
+                <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Username <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <input type="text" id="username" name="username" required
+                        value="{{ user.username if user else '' }}"
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter username">
+                </div>
+            </div>
+
+            <!-- Email -->
+            <div>
+                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Email Address
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="mail" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <input type="email" id="email" name="email" value="{{ user.email if user and user.email else '' }}"
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="user@example.com">
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional - for password reset notifications</p>
+            </div>
+
+            {% if not user %}
+            <!-- Password (Create Only) -->
+            <div>
+                <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <input type="password" id="password" name="password" required
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Enter password">
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Must be at least 12 characters with uppercase, lowercase, numbers, and special characters
+                </p>
+            </div>
+
+            <!-- Confirm Password (Create Only) -->
+            <div>
+                <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    Confirm Password <span class="text-red-500">*</span>
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="check-circle" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <input type="password" id="confirm_password" name="confirm_password" required
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Confirm password">
+                </div>
+            </div>
+            {% else %}
+            <!-- New Password (Edit Only) -->
+            <div>
+                <label for="new_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                    New Password
+                </label>
+                <div class="relative">
+                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                        <i data-lucide="key" class="w-5 h-5 text-gray-400"></i>
+                    </div>
+                    <input type="password" id="new_password" name="new_password"
+                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                        placeholder="Leave blank to keep current password">
+                </div>
+                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                    Leave blank to keep current password
+                </p>
+            </div>
+            {% endif %}
+
+            <!-- Active Status (Edit Only) -->
+            {% if user %}
+            <div class="flex items-center">
+                <input type="checkbox" id="is_active" name="is_active" {{ 'checked' if user.is_active else '' }}
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="is_active" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                    Account is active
+                </label>
+            </div>
+            {% endif %}
+
+            <!-- Must Change Password -->
+            <div class="flex items-center">
+                <input type="checkbox" id="must_change_password" name="must_change_password" {{ 'checked' if user and
+                    user.must_change_password else '' }}
+                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
+                <label for="must_change_password" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
+                    Require password change on next login
+                </label>
+            </div>
+
+            {% if user %}
+            <!-- User Info (Edit Only) -->
+            <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Account Information</h3>
+                <div class="grid grid-cols-2 gap-4 text-sm">
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Created:</span>
+                        <span class="text-gray-900 dark:text-white ml-2">{{ user.created_at.strftime('%Y-%m-%d %H:%M')
+                            }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Last Login:</span>
+                        <span class="text-gray-900 dark:text-white ml-2">
+                            {{ user.last_login_at.strftime('%Y-%m-%d %H:%M') if user.last_login_at else 'Never' }}
+                        </span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Failed Attempts:</span>
+                        <span class="text-gray-900 dark:text-white ml-2">{{ user.failed_login_attempts }}</span>
+                    </div>
+                    <div>
+                        <span class="text-gray-500 dark:text-gray-400">Password Changed:</span>
+                        <span class="text-gray-900 dark:text-white ml-2">
+                            {{ user.password_changed_at.strftime('%Y-%m-%d') if user.password_changed_at else 'Unknown'
+                            }}
+                        </span>
+                    </div>
+                </div>
+            </div>
+            {% endif %}
+
+            <!-- Action Buttons -->
+            <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
+                <a href="{{ url_for('admin_users') }}"
+                    class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white inline-flex items-center space-x-1">
+                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
+                    <span>Cancel</span>
+                </a>
+                <button type="submit"
+                    class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
+                    {% if user %}Update User{% else %}Create User{% endif %}
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

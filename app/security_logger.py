@@ -167,3 +167,18 @@ def security_audit(action_description):
             return f(*args, **kwargs)
         return decorated_function
     return decorator
+
+
+def log_security_event(event_type, message, ip_address=None, severity='info'):
+    """Log a generic security event."""
+    if not ip_address:
+        ip_address = get_client_ip()
+    
+    log_msg = f"Security Event - Type: {event_type}, Message: {message}, IP: {ip_address}"
+    
+    if severity == 'warning':
+        security_logger.warning(log_msg)
+    elif severity == 'error':
+        security_logger.error(log_msg)
+    else:
+        security_logger.info(log_msg)

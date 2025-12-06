@@ -906,7 +906,7 @@ def view_session(session_id):
 # ============================================================================
 
 @socketio.on('connect')
-def handle_connect():
+def handle_connect(auth=None):
     """
     Handle client connection with CSWSH protection.
     
@@ -925,7 +925,7 @@ def handle_connect():
     # Check Origin header (primary check)
     if origin:
         if origin not in allowed_origins:
-            log_security_event(
+            sec_log.log_security_event(
                 'websocket_rejected',
                 f'Rejected WebSocket connection from unauthorized origin: {origin}',
                 ip_address=request.remote_addr,
@@ -937,7 +937,7 @@ def handle_connect():
     elif referer:
         referer_origin = '/'.join(referer.split('/')[:3])  # Extract origin from referer
         if referer_origin not in allowed_origins:
-            log_security_event(
+            sec_log.log_security_event(
                 'websocket_rejected',
                 f'Rejected WebSocket connection from unauthorized referer: {referer}',
                 ip_address=request.remote_addr,
@@ -947,7 +947,7 @@ def handle_connect():
     
     # If neither Origin nor Referer is present, reject (potential attack)
     else:
-        log_security_event(
+        sec_log.log_security_event(
             'websocket_rejected',
             'Rejected WebSocket connection with no Origin or Referer header',
             ip_address=request.remote_addr,
@@ -978,7 +978,7 @@ def handle_connect():
         db.session.add(session)
         db.session.commit()
         
-        log_security_event(
+        sec_log.log_security_event(
             'websocket_connected',
             f'New WebSocket session created',
             ip_address=ip_address,

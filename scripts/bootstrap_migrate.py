@@ -56,11 +56,18 @@ def add_sqlite_column(cursor, table, column, ddl):
 def safe_sqlalchemy_exec(engine, sql, label):
     """Safely run SQLAlchemy statements (SQLite compatible)."""
     try:
-        engine.execute(text(sql))
+        with engine.connect() as conn:
+            conn.execute(text(sql))
+            conn.commit()
         print(f"✓ {label}")
         return True
-    except Exception:
-        print(f"○ {label} already exists")
+    except Exception as e:
+        # Check if error is actually "duplicate column" or something else
+        msg = str(e).lower()
+        if "duplicate column" in msg or "already exists" in msg:
+            print(f"○ {label} already exists")
+        else:
+            print(f"⚠ {label} failed: {e}")
         return False
 
 

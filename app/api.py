@@ -1,5 +1,6 @@
 import os
 import uuid
+import ipaddress
 from datetime import datetime
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash, send_from_directory
 from flask_socketio import SocketIO, emit, join_room
@@ -15,6 +16,7 @@ from app.auth import login_manager, admin_required, init_default_admin, validate
 from app.rate_limiter import init_limiter, RATE_LIMITS
 from app.security_headers import init_security_headers
 from app import security_logger as sec_log
+
 # Initialize Flask app
 app = Flask(__name__, 
             template_folder='web/templates',
@@ -71,12 +73,38 @@ def allowed_file(filename, allowed_extensions):
     """Check if file extension is allowed"""
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_extensions
 
+def is_local_ip(ip_address: str) -> bool:
+    try:
+        ip = ipaddress.ip_address(ip_address)
+        return ip.is_private or ip.is_loopback
+    except ValueError:
+        return False
+
 def get_location_from_ip(ip_address):
     """Get location from IP address (placeholder - can integrate with IP geolocation API)"""
     # For now, return a placeholder. In production, use a service like ipapi.co or ipinfo.io
-    if ip_address in ['127.0.0.1', 'localhost']:
-        return 'Local Development'
-    return 'Unknown Location'
+    try:
+        ip_obj = ipaddress.ip_address(ip_address)
+        if ip_obj.is_private or ip_obj.is_loopback:
+            return "Local Development"
+    except ValueError:
+        return "Local Development"  # treat invalid IP as local
+    
+    # Public IP → Lookup using API
+    try:
+        response = requests.get(f"https://ipapi.co/{ip_address}/json/", timeout=3)
+        data = response.json()
+
+        city = data.get("city")
+        region = data.get("region")
+        country = data.get("country_name")
+
+        # Build formatted string e.g. "Chicago, Illinois USA"
+        parts = [p for p in [city, region, country] if p]
+        return ", ".join(parts) if parts else "Unknown Location"
+
+    except Exception:
+        return "Unknown Location"
 
 def generate_chatbot_response(user_message, session_id, mode='conversational', profile_id=None):
     """

@@ -390,12 +390,12 @@
                     window.location.reload();
                 }, 1000);
             } else {
-                alert('Error: ' + (result.error || 'Failed to save text artifact'));
+                showToast('Error: ' + (result.error || 'Failed to save text artifact'), 'error');
                 submitBtn.disabled = false;
                 submitBtn.textContent = originalText;
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
             submitBtn.disabled = false;
             submitBtn.textContent = originalText;
         }
@@ -419,10 +419,10 @@
                 editContentInput.value = data.content;
                 editModal.classList.remove('hidden');
             } else {
-                alert('Error fetching resume content');
+                showToast('Error fetching resume content', 'error');
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
         }
     }
 
@@ -452,12 +452,12 @@
                 closeEditModal();
                 window.location.reload();
             } else {
-                alert('Error: ' + (result.error || 'Failed to update resume'));
+                showToast('Error: ' + (result.error || 'Failed to update resume'), 'error');
                 saveBtn.disabled = false;
                 saveBtn.textContent = originalText;
             }
         } catch (error) {
-            alert('Error: ' + error.message);
+            showToast('Error: ' + error.message, 'error');
             saveBtn.disabled = false;
             saveBtn.textContent = originalText;
         }

@@ -112,19 +112,81 @@
     {% endwith %}
 
     <script>
-        // Auto-dismiss flash messages
+        // Use a container for toasts
+        let toastContainer = document.querySelector('.fixed.top-4.right-4.z-50');
+        if (!toastContainer) {
+            toastContainer = document.createElement('div');
+            toastContainer.className = 'fixed top-4 right-4 z-50 space-y-2';
+            document.body.appendChild(toastContainer);
+        }
+
+        // Global function to show toast messages dynamically
+        window.showToast = function (message, category = 'info') {
+            const toast = document.createElement('div');
+
+            // Border color based on category
+            let borderColorClass = 'border-blue-500';
+            let iconClass = 'text-blue-500';
+            let iconName = 'info';
+
+            if (category === 'success') {
+                borderColorClass = 'border-green-500';
+                iconClass = 'text-green-500';
+                iconName = 'check-circle';
+            } else if (category === 'error') {
+                borderColorClass = 'border-red-500';
+                iconClass = 'text-red-500';
+                iconName = 'x-circle';
+            } else if (category === 'warning') {
+                borderColorClass = 'border-yellow-500';
+                iconClass = 'text-yellow-500';
+                iconName = 'alert-triangle';
+            }
+
+            toast.className = `bg-white dark:bg-gray-800 border-l-4 ${borderColorClass} rounded-lg shadow-lg p-4 max-w-md animate-slide-in cursor-pointer transition-opacity duration-300 transform translate-y-0 opacity-100`;
+
+            toast.innerHTML = `
+                <div class="flex items-start">
+                    <div class="flex-shrink-0">
+                        <i data-lucide="${iconName}" class="w-5 h-5 ${iconClass}"></i>
+                    </div>
+                    <div class="ml-3">
+                        <p class="text-sm font-medium">${message}</p>
+                    </div>
+                </div>
+            `;
+
+            toastContainer.appendChild(toast);
+            lucide.createIcons({ root: toast });
+
+            // Dismiss logic
+            const dismiss = () => {
+                toast.style.opacity = '0';
+                setTimeout(() => {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            };
+
+            toast.addEventListener('click', dismiss);
+
+            // Auto dismiss after 3 seconds
+            setTimeout(() => {
+                if (document.body.contains(toast)) {
+                    dismiss();
+                }
+            }, 3000);
+        };
+
+        // Auto-dismiss existing flash messages (rendered by server)
         document.addEventListener('DOMContentLoaded', () => {
             const alerts = document.querySelectorAll('.animate-slide-in');
             alerts.forEach(alert => {
-                // Add explicit close button or just click entire alert to dismiss? 
-                // Using click entire alert for simplicity as requested "users can dismiss"
                 alert.style.cursor = 'pointer';
                 alert.addEventListener('click', () => {
                     alert.style.opacity = '0';
                     setTimeout(() => alert.remove(), 300);
                 });
 
-                // Auto dismiss
                 setTimeout(() => {
                     if (document.body.contains(alert)) {
                         alert.style.opacity = '0';

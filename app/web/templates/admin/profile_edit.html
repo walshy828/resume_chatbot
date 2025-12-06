@@ -269,12 +269,12 @@
                 const result = await response.json();
 
                 if (response.ok) {
-                    alert('Resumes updated successfully!');
+                    showToast('Resumes updated successfully!', 'success');
                 } else {
-                    alert('Error: ' + (result.error || 'Failed to update resumes'));
+                    showToast('Error: ' + (result.error || 'Failed to update resumes'), 'error');
                 }
             } catch (error) {
-                alert('Error: ' + error.message);
+                showToast('Error: ' + error.message, 'error');
             }
         }
         window.saveResumes = saveResumes;

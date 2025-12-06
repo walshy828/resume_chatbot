@@ -5,6 +5,10 @@
 {% block extra_head %}
 <!-- Socket.IO -->
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<!-- Marked.js for Markdown parsing -->
+<script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+<!-- DOMPurify for sanitization -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
 <style>
     /* Sidebar transition */
     .sidebar-transition {
@@ -532,16 +536,32 @@
         const messageDiv = document.createElement('div');
         messageDiv.className = 'flex items-start space-x-3 mb-4 animate-fade-in';
 
-        // Convert URLs to clickable links and basic markdown
-        let formattedContent = escapeHtml(content);
-        // Links
-        formattedContent = formattedContent.replace(
-            /(https?:\/\/[^\s]+)/g,
-            '<a href="$1" target="_blank" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-500 break-all">$1</a>'
-        );
-        // Lists (basic)
-        formattedContent = formattedContent.replace(/\n- (.*)/g, '<br>• $1');
-        formattedContent = formattedContent.replace(/\n/g, '<br>');
+        // Parse Markdown and Sanitize
+        // Configure marked to handle breaks
+        marked.setOptions({
+            breaks: true,
+            gfm: true
+        });
+
+        // Parse markdown to HTML
+        let rawHtml = marked.parse(content);
+
+        // Sanitize the HTML
+        let formattedContent = DOMPurify.sanitize(rawHtml, {
+            ADD_ATTR: ['target', 'class'],
+            FORBID_TAGS: ['style', 'script']
+        });
+
+        // Make links open in new tab and add styling
+        const tempDiv = document.createElement('div');
+        tempDiv.innerHTML = formattedContent;
+        const links = tempDiv.querySelectorAll('a');
+        links.forEach(link => {
+            link.setAttribute('target', '_blank');
+            // Add utility classes for links
+            link.classList.add('text-blue-600', 'dark:text-blue-400', 'underline', 'hover:text-blue-700', 'dark:hover:text-blue-500', 'break-all');
+        });
+        formattedContent = tempDiv.innerHTML;
 
         // Format time
         const dateObj = timestamp ? new Date(timestamp) : new Date();

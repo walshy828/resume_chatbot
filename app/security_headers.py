@@ -29,7 +29,7 @@ def init_security_headers(app: Flask):
             "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.tailwindcss.com; "
             "font-src 'self' https://fonts.gstatic.com https://r2cdn.perplexity.ai data:; "
             "img-src 'self' data: https:; "
-            "connect-src 'self' wss: ws: https://unpkg.com https://cdn.socket.io; "
+            "connect-src 'self' wss: ws: https://unpkg.com https://cdn.socket.io https://cdnjs.cloudflare.com https://cdn.jsdelivr.net; "
             "frame-ancestors 'none'; "
             "base-uri 'self'; "
             "form-action 'self'"

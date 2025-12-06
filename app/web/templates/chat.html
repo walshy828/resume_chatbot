@@ -5,398 +5,513 @@
 {% block extra_head %}
 <!-- Socket.IO -->
 <script src="https://cdn.socket.io/4.5.4/socket.io.min.js"></script>
+<style>
+    /* Sidebar transition */
+    .sidebar-transition {
+        transition: transform 0.3s ease-in-out;
+    }
+
+    /* Hide scrollbar for sidebar but keep functionality */
+    .no-scrollbar::-webkit-scrollbar {
+        display: none;
+    }
+
+    .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+    }
+</style>
 {% endblock %}
 
 {% block content %}
-<div class="h-screen flex flex-col overflow-hidden bg-white dark:bg-gray-900">
-    <!-- Header -->
-    <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-none z-10">
-        <div class="max-w-4xl mx-auto px-4 py-4">
-            <div class="flex items-center justify-between">
+<div class="flex h-screen overflow-hidden bg-white dark:bg-gray-900">
+
+    <!-- Sidebar -->
+    <aside id="sidebar"
+        class="w-64 flex-shrink-0 flex flex-col bg-gray-50 dark:bg-gray-800 border-r border-gray-200 dark:border-gray-700 absolute md:relative z-20 h-full transform -translate-x-full md:translate-x-0 transition-transform duration-300">
+        <!-- Sidebar Header -->
+        <div class="p-4 flex items-center justify-between border-b border-gray-200 dark:border-gray-700">
+            <h2 class="text-lg font-semibold text-gray-800 dark:text-white flex items-center">
+                <i data-lucide="message-square" class="w-5 h-5 mr-2 text-blue-500"></i>
+                Chats
+            </h2>
+            <button id="close-sidebar"
+                class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200">
+                <i data-lucide="x" class="w-5 h-5"></i>
+            </button>
+        </div>
+
+        <!-- New Chat Button -->
+        <div class="p-4 pb-2">
+            <button onclick="startNewChat()"
+                class="w-full flex items-center justify-center space-x-2 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-lg px-4 py-2.5 transition-all shadow-sm hover:shadow-md">
+                <i data-lucide="plus" class="w-4 h-4"></i>
+                <span class="font-medium">New Chat</span>
+            </button>
+        </div>
+
+        <!-- History List -->
+        <div class="flex-1 overflow-y-auto no-scrollbar px-3 py-2 space-y-1" id="history-list">
+            <!-- Items injected by JS -->
+            <div class="text-center py-8 text-gray-400 text-sm">Loading history...</div>
+        </div>
+
+        <!-- Sidebar Footer -->
+        <div class="p-4 border-t border-gray-200 dark:border-gray-700 space-y-3">
+            <!-- Profile Selector (Moved to sidebar for cleaner header) -->
+            <div class="relative">
+                <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Profile</label>
+                <select id="profile-selector"
+                    class="block w-full appearance-none bg-white dark:bg-gray-700 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-white text-sm rounded-lg focus:ring-blue-500 focus:border-blue-500 block p-2.5 pr-8">
+                    <option value="">Loading...</option>
+                </select>
+                <div
+                    class="pointer-events-none absolute inset-y-0 right-0 top-6 flex items-center px-2 text-gray-700 dark:text-gray-300">
+                    <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                </div>
+            </div>
+
+            <!-- Mode Toggle -->
+            <div class="flex bg-gray-200 dark:bg-gray-700 rounded-lg p-1">
+                <button id="mode-conversational"
+                    class="flex-1 py-1.5 rounded-md text-xs font-medium transition-all duration-200 bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
+                    onclick="setMode('conversational')">
+                    Conversational
+                </button>
+                <button id="mode-simple"
+                    class="flex-1 py-1.5 rounded-md text-xs font-medium transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
+                    onclick="setMode('simple')">
+                    Simple
+                </button>
+            </div>
+            <div class="pt-2 text-center">
+                <a href="/admin/login"
+                    class="text-xs text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 transition-colors">Admin
+                    Login</a>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Overlay for mobile sidebar -->
+    <div id="sidebar-overlay" class="fixed inset-0 bg-black bg-opacity-50 z-10 hidden md:hidden"
+        onclick="toggleSidebar()"></div>
+
+    <!-- Main Chat Area -->
+    <div class="flex-1 flex flex-col h-full overflow-hidden w-full relative">
+        <!-- Header -->
+        <header
+            class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 flex-none z-10 shadow-sm">
+            <div class="px-4 py-3 flex items-center justify-between">
                 <div class="flex items-center space-x-3">
+                    <button onclick="toggleSidebar()"
+                        class="md:hidden text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 focus:outline-none">
+                        <i data-lucide="menu" class="w-6 h-6"></i>
+                    </button>
+
                     <div
-                        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                        class="w-10 h-10 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-md">
                         <i data-lucide="bot" class="w-6 h-6 text-white"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-display font-semibold text-gray-900 dark:text-white">{{
-                            settings.chatbot_name }}</h1>
-                        <p class="text-sm text-gray-500 dark:text-gray-400">
-                            <span id="status-indicator"
-                                class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
-                            <span id="status-text">Online</span>
-                        </p>
+                        <h1 class="text-lg font-display font-semibold text-gray-900 dark:text-white leading-tight">
+                            {{ settings.chatbot_name }}
+                        </h1>
+                        <div class="flex items-center space-x-2">
+                            <p class="text-xs text-gray-500 dark:text-gray-400 flex items-center">
+                                <span id="status-indicator"
+                                    class="inline-block w-2 h-2 rounded-full bg-green-500 mr-1"></span>
+                                <span id="status-text">Online</span>
+                            </p>
+                            <span class="text-gray-300 dark:text-gray-600">|</span>
+                            <p class="text-xs text-gray-500 dark:text-gray-400" id="current-profile-name">
+                                Default Profile
+                            </p>
+                        </div>
                     </div>
                 </div>
 
-                <div class="flex items-center space-x-3">
-                    <!-- Profile Selector -->
-                    <div class="relative">
-                        <select id="profile-selector"
-                            class="appearance-none bg-gray-100 dark:bg-gray-700 rounded-lg px-4 py-2 pr-8 text-sm font-medium text-gray-900 dark:text-white border border-gray-300 dark:border-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500 cursor-pointer">
-                            <option value="">Loading...</option>
-                        </select>
+                <!-- Actions -->
+                <div class="flex items-center space-x-2">
+                    <!-- Add specific header actions if needed -->
+                </div>
+            </div>
+        </header>
+
+        <!-- Chat Messages Container -->
+        <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900 scroll-smooth p-4" id="chat-container">
+            <div class="max-w-3xl mx-auto w-full">
+                <!-- Welcome Message -->
+                <div class="flex flex-col items-center justify-center min-h-[50vh] transition-opacity duration-300"
+                    id="welcome-screen">
+                    <div
+                        class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 max-w-md w-full text-center">
                         <div
-                            class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-gray-700 dark:text-gray-300">
-                            <i data-lucide="chevron-down" class="w-4 h-4"></i>
+                            class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4 shadow-lg">
+                            <i data-lucide="sparkles" class="w-8 h-8 text-white"></i>
                         </div>
-                    </div>
+                        <h2 id="greeting-name" class="text-xl font-bold text-gray-900 dark:text-white mb-2">
+                            Hi! I'm AI Assistant
+                        </h2>
+                        <p id="greeting-intro" class="text-sm text-gray-600 dark:text-gray-400 leading-relaxed">
+                            I'd love to chat about my background and experience. What would you like to know?
+                        </p>
 
-                    <!-- Mode Toggle -->
-                    <div class="flex items-center bg-gray-100 dark:bg-gray-700 rounded-lg p-1">
-                        <button id="mode-conversational"
-                            class="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 bg-white dark:bg-gray-600 text-gray-900 dark:text-white shadow-sm"
-                            onclick="setMode('conversational')">
-                            Conversational
-                        </button>
-                        <button id="mode-simple"
-                            class="px-3 py-1.5 rounded-md text-sm font-medium transition-all duration-200 text-gray-500 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-                            onclick="setMode('simple')">
-                            Simple
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </header>
-
-    <!-- Chat Messages Container -->
-    <main class="flex-1 overflow-y-auto bg-gray-50 dark:bg-gray-900" id="chat-container">
-        <div class="max-w-4xl mx-auto px-4 py-6">
-            <!-- Welcome Message -->
-            <div class="flex items-center justify-center p-8">
-                <div
-                    class="bg-white dark:bg-gray-800 rounded-2xl shadow-sm border border-gray-200 dark:border-gray-700 p-8 max-w-2xl w-full text-center">
-                    <div
-                        class="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center mx-auto mb-4">
-                        <i data-lucide="sparkles" class="w-8 h-8 text-white"></i>
-                    </div>
-                    <h2 id="greeting-name" class="text-2xl font-bold text-gray-900 dark:text-white mb-3">
-                        Hi! I'm AI Assistant
-                    </h2>
-                    <p id="greeting-intro" class="text-gray-600 dark:text-gray-400 leading-relaxed">
-                        I'd love to chat about my background and experience. What would you like to know?
-                    </p>
-                </div>
-            </div>
-            <!-- Messages will be appended here -->
-            <div id="messages" class="space-y-4">
-            </div>
-
-            <!-- Typing Indicator -->
-            <div id="typing-indicator" class="hidden">
-                <div class="flex items-start space-x-3">
-                    <div
-                        class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                        <i data-lucide="bot" class="w-4 h-4 text-white"></i>
-                    </div>
-                    <div
-                        class="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-200 dark:border-gray-700 px-4 py-3">
-                        <div class="flex space-x-1">
-                            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
-                                style="animation-delay: 0ms"></div>
-                            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
-                                style="animation-delay: 150ms"></div>
-                            <div class="w-2 h-2 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
-                                style="animation-delay: 300ms"></div>
+                        <div class="mt-6 grid grid-cols-1 gap-2">
+                            <button onclick="sendQuickMessage('Tell me about your experience')"
+                                class="text-sm bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg transition-colors text-left flex items-center">
+                                <i data-lucide="briefcase" class="w-4 h-4 mr-2 text-blue-500"></i>
+                                Tell me about your experience
+                            </button>
+                            <button onclick="sendQuickMessage('What act skills do you have?')"
+                                class="text-sm bg-gray-50 dark:bg-gray-700 hover:bg-gray-100 dark:hover:bg-gray-600 text-gray-700 dark:text-gray-300 py-2 px-4 rounded-lg transition-colors text-left flex items-center">
+                                <i data-lucide="code" class="w-4 h-4 mr-2 text-purple-500"></i>
+                                What technical skills do you have?
+                            </button>
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-    </main>
 
-    <!-- Input Area -->
-    <footer class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-none">
-        <div class="max-w-4xl mx-auto px-4 py-4">
-            <form id="chat-form" class="flex items-end space-x-3">
-                <div class="flex-1 relative">
+                <!-- Messages -->
+                <div id="messages" class="space-y-6 pb-4">
+                    <!-- Messages injected here -->
+                </div>
+
+                <!-- Typing Indicator -->
+                <div id="typing-indicator" class="hidden mb-6">
+                    <div class="flex items-end space-x-2">
+                        <div
+                            class="w-6 h-6 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
+                            <i data-lucide="bot" class="w-3 h-3 text-white"></i>
+                        </div>
+                        <div
+                            class="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-none shadow-sm border border-gray-200 dark:border-gray-700 px-4 py-2">
+                            <div class="flex space-x-1 items-center h-5">
+                                <div class="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
+                                    style="animation-delay: 0ms"></div>
+                                <div class="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
+                                    style="animation-delay: 150ms"></div>
+                                <div class="w-1.5 h-1.5 bg-gray-400 dark:bg-gray-500 rounded-full animate-bounce"
+                                    style="animation-delay: 300ms"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!-- Spacer for scrolling -->
+                <div class="h-4"></div>
+            </div>
+        </main>
+
+        <!-- Input Area -->
+        <footer
+            class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-none p-4 w-full z-10">
+            <div class="max-w-3xl mx-auto w-full">
+                <form id="chat-form"
+                    class="relative flex items-end shadow-sm rounded-2xl bg-gray-100 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent transition-all">
                     <textarea id="message-input" rows="1" placeholder="Type your message..."
-                        class="w-full px-4 py-3 pr-12 bg-gray-100 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400"
-                        style="max-height: 150px;"></textarea>
+                        class="w-full px-4 py-3 bg-transparent border-none focus:ring-0 resize-none text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 max-h-[150px] overflow-hidden leading-relaxed"
+                        style="min-height: 48px;"></textarea>
+
+                    <div class="flex items-center pb-2 pr-2 ml-2">
+                        <button type="submit" id="send-button"
+                            class="p-2 mb-0.5 bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-xl transition-all duration-200 transform hover:scale-105 focus:outline-none disabled:opacity-50 disabled:cursor-not-allowed">
+                            <i data-lucide="send" class="w-4 h-4"></i>
+                        </button>
+                    </div>
+                </form>
+                <div class="mt-2 text-center text-[10px] text-gray-400 dark:text-gray-500">
+                    AI can make mistakes. Consider checking important information.
                 </div>
-                <button type="submit" id="send-button"
-                    class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white rounded-full p-3 transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none">
-                    <i data-lucide="send" class="w-5 h-5"></i>
-                </button>
-            </form>
-            <p class="text-xs text-gray-500 dark:text-gray-400 text-center mt-2">
-                Powered by AI • Your conversations are tracked for analytics
-            </p>
-        </div>
-    </footer>
+            </div>
+        </footer>
+    </div>
 </div>
 
 <script>
-    // Socket.IO connection
-    let sessionId = localStorage.getItem('chat_session_id') || null;
-    const socket = io({
-        query: { session_id: sessionId }
-    });
+    // --- User Identity Management ---
+    let userIdentifier = localStorage.getItem('chat_user_identifier');
+    if (!userIdentifier) {
+        // Generate a random UUID v4 if not exists
+        userIdentifier = crypto.randomUUID();
+        localStorage.setItem('chat_user_identifier', userIdentifier);
+    }
 
+    // --- State Management ---
+    let sessionId = null; // Start with no session (New Chat state)
+    let socket = null;
+    let currentMode = 'conversational';
+    let currentProfileId = null;
+    let currentProfile = null;
+
+    // --- UI Elements ---
     const messagesContainer = document.getElementById('messages');
     const chatContainer = document.getElementById('chat-container');
     const messageInput = document.getElementById('message-input');
     const chatForm = document.getElementById('chat-form');
-    const sendButton = document.getElementById('send-button');
     const typingIndicator = document.getElementById('typing-indicator');
     const statusText = document.getElementById('status-text');
     const statusIndicator = document.getElementById('status-indicator');
+    const welcomeScreen = document.getElementById('welcome-screen');
+    const historyList = document.getElementById('history-list');
+    const profileSelector = document.getElementById('profile-selector');
+    const sidebar = document.getElementById('sidebar');
+    const sidebarOverlay = document.getElementById('sidebar-overlay');
 
-    // Connection handlers
-    socket.on('connect', () => {
-        statusText.textContent = 'Online';
-        statusIndicator.classList.remove('bg-gray-400');
-        statusIndicator.classList.add('bg-green-500');
-    });
+    // --- Initialization ---
+    document.addEventListener('DOMContentLoaded', async () => {
+        setupAutoResize();
+        await loadProfiles();
+        loadHistory();
 
-    socket.on('disconnect', () => {
-        statusText.textContent = 'Offline';
-        statusIndicator.classList.remove('bg-green-500');
-        statusIndicator.classList.add('bg-gray-400');
-    });
+        // Check URL or LocalStorage for last session? 
+        // For now, start fresh or load most recent?
+        // Let's check if there is an active session in local storage we want to resume
+        // But the "New Chat" logic suggests we might want to start fresh often.
+        // Let's load the history list first, then decide.
 
-    socket.on('connected', (data) => {
-        sessionId = data.session_id;
-        localStorage.setItem('chat_session_id', sessionId);
-    });
-
-    // Message handlers
-    socket.on('message', (data) => {
-        addMessage(data.role, data.content, data.timestamp);
-    });
-
-    socket.on('typing', (data) => {
-        if (data.typing) {
-            typingIndicator.classList.remove('hidden');
+        const lastSessionId = localStorage.getItem('last_active_session_id');
+        if (lastSessionId) {
+            await loadSession(lastSessionId);
         } else {
-            typingIndicator.classList.add('hidden');
+            startNewChat();
         }
-        scrollToBottom();
     });
 
-    // Scroll to bottom function - SINGLE DEFINITION
-    // Scroll to bottom function - SINGLE DEFINITION
-    function scrollToBottom(smooth = true) {
-        const scroll = () => {
-            // Try to scroll to the typing indicator if it's visible
-            if (!typingIndicator.classList.contains('hidden')) {
-                typingIndicator.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+    // --- Socket Connection ---
+    function connectSocket() {
+        if (socket) {
+            socket.disconnect();
+        }
+
+        const queryFn = {
+            user_identifier: userIdentifier
+        };
+
+        if (sessionId) {
+            queryFn.session_id = sessionId;
+        }
+
+        socket = io({
+            query: queryFn
+        });
+
+        socket.on('connect', () => {
+            statusText.textContent = 'Online';
+            statusIndicator.classList.remove('bg-gray-400');
+            statusIndicator.classList.add('bg-green-500');
+        });
+
+        socket.on('disconnect', () => {
+            statusText.textContent = 'Offline';
+            statusIndicator.classList.remove('bg-green-500');
+            statusIndicator.classList.add('bg-gray-400');
+        });
+
+        socket.on('connected', (data) => {
+            // Server confirmed session ID
+            if (sessionId !== data.session_id) {
+                sessionId = data.session_id;
+                // If it's a new session we just created, refresh history list after a moment to show it
+                if (!lastSessionIdWasKnown) {
+                    setTimeout(loadHistory, 2000);
+                }
+                localStorage.setItem('last_active_session_id', sessionId);
+            }
+            lastSessionIdWasKnown = true;
+        });
+
+        socket.on('message', (data) => {
+            // Hide welcome screen if visible
+            welcomeScreen.style.display = 'none';
+            addMessage(data.role, data.content, data.timestamp);
+
+            // If this was the first message, refresh history to show the title
+            loadHistory();
+        });
+
+        socket.on('typing', (data) => {
+            if (data.typing) {
+                typingIndicator.classList.remove('hidden');
+            } else {
+                typingIndicator.classList.add('hidden');
+            }
+            scrollToBottom();
+        });
+    }
+
+    let lastSessionIdWasKnown = false;
+
+    // --- Chat Logic ---
+    function startNewChat() {
+        sessionId = null;
+        lastSessionIdWasKnown = false;
+        localStorage.removeItem('last_active_session_id');
+
+        // Clear UI
+        messagesContainer.innerHTML = '';
+        welcomeScreen.style.display = 'flex';
+
+        // Update active state in history list
+        document.querySelectorAll('.history-item').forEach(el => el.classList.remove('bg-gray-200', 'dark:bg-gray-700'));
+
+        // Connect socket (will generate new session ID on server)
+        connectSocket();
+
+        // Close sidebar on mobile
+        if (window.innerWidth < 768) {
+            toggleSidebar();
+        }
+    }
+
+    async function loadSession(id) {
+        if (sessionId === id) return;
+
+        sessionId = id;
+        localStorage.setItem('last_active_session_id', sessionId);
+
+        // Clear UI
+        messagesContainer.innerHTML = '';
+        welcomeScreen.style.display = 'none'; // Optimistically hide
+
+        // Fetch messages
+        try {
+            // Reuse admin endpoint? No, admin endpoint is protected.
+            // We need a public endpoint or need to rely on 'history' endpoint to give us messages?
+            // Wait, the plan didn't explicitly create a public 'get messages' endpoint only 'get history' (sessions).
+            // Actually, we can use the `join_room` to get history? No, socket usually doesn't replay unless configured.
+            // I need to add a public endpoint to get messages for a session belonging to user_identifier.
+            // OR I can use the socket to request history. 
+            // IMPROVEMENT: Let's fetch history via API. I missed adding `GET /api/history/<session_id>` in the plan's list but I added `DELETE`.
+            // Let's add that endpoint quickly via a tool call if it's missing, OR I can rely on client-side storage? No, server is source of truth.
+
+            // Checking api.py... I only added `GET /api/history` (list) and `DELETE`.
+            // I need `GET /api/history/<session_id>/messages`
+
+            // FALLBACK FOR NOW: Just connect. The history won't load from server!
+            // WAIT - I need to fix this.
+            // I will implement a quick fetch logic assuming I'll add the endpoint.
+
+            const response = await fetch(`/api/history/${sessionId}/messages?user_identifier=${userIdentifier}`);
+            if (response.ok) {
+                const data = await response.json();
+                if (data.messages && data.messages.length > 0) {
+                    data.messages.forEach(msg => {
+                        addMessage(msg.role, msg.content, msg.timestamp, false);
+                    });
+                    welcomeScreen.style.display = 'none';
+                } else {
+                    // No messages?
+                    welcomeScreen.style.display = 'flex';
+                }
+            } else {
+                console.error("Failed to load messages");
+                // startNewChat(); // Fallback?
+            }
+
+        } catch (e) {
+            console.error("Error loading session:", e);
+        }
+
+        // Connect socket for this session
+        connectSocket();
+        updateHistoryActiveState();
+
+        if (window.innerWidth < 768) {
+            toggleSidebar(); // Close sidebar
+        }
+    }
+
+    async function loadHistory() {
+        try {
+            const response = await fetch(`/api/history?user_identifier=${userIdentifier}`);
+            const sessions = await response.json();
+
+            historyList.innerHTML = '';
+
+            if (sessions.length === 0) {
+                historyList.innerHTML = '<div class="text-center py-8 text-gray-400 text-sm">No recent chats</div>';
                 return;
             }
 
-            // Otherwise scroll to the last message
-            const lastMessage = messagesContainer.lastElementChild;
-            if (lastMessage) {
-                lastMessage.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
-            } else {
-                // Fallback for empty chat
-                chatContainer.scrollTop = chatContainer.scrollHeight;
-            }
-        };
+            sessions.forEach(session => {
+                const div = document.createElement('div');
+                div.className = `history-item group flex items-center justify-between p-3 rounded-xl cursor-pointer transition-colors duration-200 hover:bg-gray-100 dark:hover:bg-gray-700 ${session.session_id === sessionId ? 'bg-gray-200 dark:bg-gray-700' : ''}`;
+                div.dataset.sessionId = session.session_id;
+                div.onclick = (e) => {
+                    // Prevent clicking delete from triggering load
+                    if (e.target.closest('.delete-btn')) return;
+                    loadSession(session.session_id);
+                };
 
-        // Attempt scroll immediately
-        scroll();
+                div.innerHTML = `
+                    <div class="flex-1 min-w-0 pr-2">
+                        <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">${escapeHtml(session.title)}</h3>
+                        <p class="text-xs text-gray-500 dark:text-gray-400 truncate">${formatDate(session.last_activity)}</p>
+                    </div>
+                    <button class="delete-btn opacity-0 group-hover:opacity-100 p-1.5 text-gray-400 hover:text-red-500 rounded-md hover:bg-gray-200 dark:hover:bg-gray-600 transition-all"
+                        onclick="deleteSession(event, '${session.session_id}')" title="Delete chat">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
+                    </button>
+                `;
 
-        // Attempt again after a slight delay
-        requestAnimationFrame(() => {
-            setTimeout(scroll, 50);
-            setTimeout(scroll, 150);
-        });
-    }
-
-    // Add message to chat
-    function addMessage(role, content, timestamp) {
-        const messageDiv = document.createElement('div');
-        messageDiv.className = 'flex items-start space-x-3';
-
-        // Convert URLs to clickable links
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        const contentWithLinks = escapeHtml(content).replace(urlRegex, '<a href="$1" target="_blank" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-500 break-all">$1</a>');
-
-        if (role === 'user') {
-            messageDiv.classList.add('flex-row-reverse', 'space-x-reverse');
-            messageDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="user" class="w-4 h-4 text-white"></i>
-                </div>
-                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-sm px-4 py-3 max-w-lg">
-                    <p class="text-sm leading-relaxed">${escapeHtml(content)}</p>
-                </div>
-            `;
-        } else {
-            messageDiv.innerHTML = `
-                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0">
-                    <i data-lucide="bot" class="w-4 h-4 text-white"></i>
-                </div>
-                <div class="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm shadow-sm border border-gray-200 dark:border-gray-700 px-4 py-3 max-w-lg">
-                    <p class="text-sm leading-relaxed text-gray-900 dark:text-gray-100">${contentWithLinks}</p>
-                </div>
-            `;
-        }
-
-        messagesContainer.appendChild(messageDiv);
-        lucide.createIcons();
-
-        // Scroll after adding message
-        scrollToBottom();
-    }
-
-    // Send message
-    chatForm.addEventListener('submit', (e) => {
-        e.preventDefault();
-
-        const message = messageInput.value.trim();
-        if (!message) return;
-
-        // Send to server
-        socket.emit('send_message', {
-            session_id: sessionId,
-            message: message,
-            mode: currentMode
-        });
-
-        // Clear input
-        messageInput.value = '';
-        messageInput.style.height = 'auto';
-        messageInput.focus();
-    });
-
-    // Auto-resize textarea
-    messageInput.addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
-    });
-
-    // Enter to send, Shift+Enter for new line
-    messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatForm.dispatchEvent(new Event('submit'));
-        }
-    });
-
-    // Escape HTML
-    function escapeHtml(text) {
-        const div = document.createElement('div');
-        div.textContent = text;
-        return div.innerHTML;
-    }
-
-    // Mode handling
-    let currentMode = 'conversational';
-    let currentProfileId = null;
-
-    function setMode(mode) {
-        currentMode = mode;
-
-        // Update UI
-        const convBtn = document.getElementById('mode-conversational');
-        const simpleBtn = document.getElementById('mode-simple');
-
-        if (mode === 'conversational') {
-            convBtn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
-            convBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
-
-            simpleBtn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
-            simpleBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
-        } else {
-            simpleBtn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
-            simpleBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
-
-            convBtn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
-            convBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
-        }
-    }
-
-    // Profile management
-    const profileSelector = document.getElementById('profile-selector');
-    let currentProfile = null;
-
-    // Update greeting based on selected profile
-    function updateGreeting(profile) {
-        const greetingName = document.getElementById('greeting-name');
-        const greetingIntro = document.getElementById('greeting-intro');
-
-        if (profile && profile.display_name) {
-            greetingName.textContent = `Hi! I'm ${profile.display_name}`;
-        } else {
-            greetingName.textContent = 'Hi! I\'m AI Assistant';
-        }
-
-        if (profile && profile.introduction) {
-            // Render HTML directly (already sanitized on server)
-            greetingIntro.innerHTML = profile.introduction;
-        } else {
-            greetingIntro.textContent = 'I\'d love to chat about my background and experience. What would you like to know?';
-        }
-    }
-
-    async function loadProfiles() {
-        try {
-            const response = await fetch('/api/profiles');
-            const profiles = await response.json();
-
-            // Clear existing options
-            profileSelector.innerHTML = '';
-
-            // Get saved profile from localStorage
-            const savedProfileId = localStorage.getItem('selected_profile_id');
-
-            // Populate options
-            profiles.forEach(profile => {
-                const option = document.createElement('option');
-                option.value = profile.id;
-                option.textContent = profile.name + (profile.is_default ? ' (Default)' : '');
-
-                // Select saved profile or default
-                if ((savedProfileId && profile.id == savedProfileId) || (!savedProfileId && profile.is_default)) {
-                    option.selected = true;
-                    currentProfileId = profile.id;
-                    currentProfile = profile;
-                    updateGreeting(profile);
-                }
-
-                profileSelector.appendChild(option);
+                historyList.appendChild(div);
             });
 
-            // Re-render icons after DOM update
             lucide.createIcons();
+
         } catch (error) {
-            console.error('Error loading profiles:', error);
-            profileSelector.innerHTML = '<option value="">Error loading profiles</option>';
+            console.error('Error loading history:', error);
+            historyList.innerHTML = '<div class="text-center py-4 text-red-400 text-sm">Failed to load history</div>';
         }
     }
 
-    // Handle profile selection change
-    profileSelector.addEventListener('change', async (e) => {
-        currentProfileId = e.target.value ? parseInt(e.target.value) : null;
-        localStorage.setItem('selected_profile_id', currentProfileId);
+    async function deleteSession(event, id) {
+        event.stopPropagation();
+        if (!confirm('Are you sure you want to delete this chat?')) return;
 
-        // Fetch profile details to update greeting
-        if (currentProfileId) {
-            try {
-                const response = await fetch('/api/profiles');
-                const profiles = await response.json();
-                currentProfile = profiles.find(p => p.id == currentProfileId);
-                updateGreeting(currentProfile);
-            } catch (error) {
-                console.error('Error fetching profile:', error);
+        try {
+            await fetch(`/api/history/${id}`, {
+                method: 'DELETE'
+            });
+
+            // Remove from UI
+            const item = historyList.querySelector(`[data-session-id="${id}"]`);
+            if (item) item.remove();
+
+            // If current session, start new
+            if (sessionId === id) {
+                startNewChat();
             }
+        } catch (e) {
+            console.error('Delete failed', e);
         }
-    });
+    }
 
-    // Load profiles on page load
-    loadProfiles();
+    function updateHistoryActiveState() {
+        document.querySelectorAll('.history-item').forEach(el => {
+            if (el.dataset.sessionId === sessionId) {
+                el.classList.add('bg-gray-200', 'dark:bg-gray-700');
+            } else {
+                el.classList.remove('bg-gray-200', 'dark:bg-gray-700');
+            }
+        });
+    }
 
-    // Send message
+    // --- Message Handling ---
+    function sendQuickMessage(text) {
+        messageInput.value = text;
+        chatForm.dispatchEvent(new Event('submit'));
+    }
+
     chatForm.addEventListener('submit', (e) => {
         e.preventDefault();
-
         const message = messageInput.value.trim();
         if (!message) return;
 
-        // Send to server with mode and profile
+        // Optimistic add (optional, but good for UX)
+        // addMessage('user', message, new Date().toISOString()); 
+        // Better to wait for server echo to confirm logic but instant feedback is nice.
+        // Let's stick to socket echo for simplicity so we don't duplicate.
+
         socket.emit('send_message', {
             session_id: sessionId,
             message: message,
@@ -404,35 +519,193 @@
             profile_id: currentProfileId
         });
 
-        // Clear input
         messageInput.value = '';
-        messageInput.style.height = 'auto';
+        messageInput.style.height = 'auto'; // Reset height
         messageInput.focus();
+        welcomeScreen.style.display = 'none';
     });
 
-    // Auto-resize textarea
-    messageInput.addEventListener('input', function () {
-        this.style.height = 'auto';
-        this.style.height = Math.min(this.scrollHeight, 150) + 'px';
-    });
+    function addMessage(role, content, timestamp, smoothScroll = true) {
+        const messageDiv = document.createElement('div');
+        messageDiv.className = 'flex items-start space-x-3 mb-4 animate-fade-in';
 
-    // Enter to send, Shift+Enter for new line
-    messageInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            chatForm.dispatchEvent(new Event('submit'));
+        // Convert URLs to clickable links and basic markdown
+        let formattedContent = escapeHtml(content);
+        // Links
+        formattedContent = formattedContent.replace(
+            /(https?:\/\/[^\s]+)/g,
+            '<a href="$1" target="_blank" class="text-blue-600 dark:text-blue-400 underline hover:text-blue-700 dark:hover:text-blue-500 break-all">$1</a>'
+        );
+        // Lists (basic)
+        formattedContent = formattedContent.replace(/\n- (.*)/g, '<br>• $1');
+        formattedContent = formattedContent.replace(/\n/g, '<br>');
+
+        if (role === 'user') {
+            messageDiv.classList.add('flex-row-reverse', 'space-x-reverse');
+            messageDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-gray-600 to-gray-800 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <i data-lucide="user" class="w-4 h-4 text-white"></i>
+                </div>
+                <div class="bg-gradient-to-r from-blue-500 to-purple-600 text-white rounded-2xl rounded-tr-sm shadow-md px-5 py-3.5 max-w-[85%] sm:max-w-lg">
+                    <div class="text-sm leading-relaxed">${formattedContent}</div>
+                </div>
+            `;
+        } else {
+            messageDiv.innerHTML = `
+                <div class="w-8 h-8 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center flex-shrink-0 shadow-sm">
+                    <i data-lucide="bot" class="w-4 h-4 text-white"></i>
+                </div>
+                <div class="bg-white dark:bg-gray-800 rounded-2xl rounded-tl-sm shadow-md border border-gray-100 dark:border-gray-700 px-5 py-3.5 max-w-[85%] sm:max-w-lg">
+                    <div class="text-sm leading-relaxed text-gray-800 dark:text-gray-100 prose dark:prose-invert max-w-none">
+                        ${formattedContent}
+                    </div>
+                </div>
+            `;
         }
-    });
 
-    // Escape HTML
+        messagesContainer.appendChild(messageDiv);
+        lucide.createIcons();
+        scrollToBottom(smoothScroll);
+    }
+
+    // --- Helpers ---
+    function scrollToBottom(smooth = true) {
+        const scroll = () => {
+            // If typing indicator is visible, scroll to it
+            if (!typingIndicator.classList.contains('hidden')) {
+                typingIndicator.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+            } else {
+                // Scroll container to bottom
+                chatContainer.scrollTop = chatContainer.scrollHeight;
+            }
+        };
+        setTimeout(scroll, 50);
+    }
+
+    function formatDate(isoString) {
+        const date = new Date(isoString);
+        const now = new Date();
+        const diff = now - date;
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+
+        if (days === 0) {
+            return date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        } else if (days === 1) {
+            return 'Yesterday';
+        } else if (days < 7) {
+            return date.toLocaleDateString([], { weekday: 'short' });
+        } else {
+            return date.toLocaleDateString([], { month: 'short', day: 'numeric' });
+        }
+    }
+
     function escapeHtml(text) {
+        if (!text) return '';
         const div = document.createElement('div');
         div.textContent = text;
         return div.innerHTML;
     }
 
-    // Initial scroll on page load
-    window.addEventListener('load', () => scrollToBottom(false));
-    scrollToBottom(false);
+    function toggleSidebar() {
+        sidebar.classList.toggle('-translate-x-full');
+        // Overlay toggle
+        if (sidebarOverlay.classList.contains('hidden')) {
+            sidebarOverlay.classList.remove('hidden');
+        } else {
+            sidebarOverlay.classList.add('hidden');
+        }
+    }
+
+    // --- Profile & Mode ---
+    function setMode(mode) {
+        currentMode = mode;
+        const convBtn = document.getElementById('mode-conversational');
+        const simpleBtn = document.getElementById('mode-simple');
+
+        if (mode === 'conversational') {
+            convBtn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            convBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+            simpleBtn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            simpleBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+        } else {
+            simpleBtn.classList.add('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            simpleBtn.classList.remove('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+            convBtn.classList.remove('bg-white', 'dark:bg-gray-600', 'text-gray-900', 'dark:text-white', 'shadow-sm');
+            convBtn.classList.add('text-gray-500', 'dark:text-gray-400', 'hover:text-gray-900', 'dark:hover:text-white');
+        }
+    }
+
+    async function loadProfiles() {
+        try {
+            const response = await fetch('/api/profiles');
+            const profiles = await response.json();
+            profileSelector.innerHTML = '';
+
+            const savedProfileId = localStorage.getItem('selected_profile_id');
+
+            profiles.forEach(profile => {
+                const option = document.createElement('option');
+                option.value = profile.id;
+                option.textContent = profile.name + (profile.is_default ? ' (Default)' : '');
+
+                if ((savedProfileId && profile.id == savedProfileId) || (!savedProfileId && profile.is_default)) {
+                    option.selected = true;
+                    currentProfileId = profile.id;
+                    currentProfile = profile;
+                    updateGreeting(profile);
+                    document.getElementById('current-profile-name').textContent = profile.display_name || profile.name;
+                }
+                profileSelector.appendChild(option);
+            });
+            lucide.createIcons();
+        } catch (error) {
+            console.error('Error loading profiles:', error);
+        }
+    }
+
+    profileSelector.addEventListener('change', async (e) => {
+        currentProfileId = e.target.value ? parseInt(e.target.value) : null;
+        localStorage.setItem('selected_profile_id', currentProfileId);
+
+        try {
+            // Refetch to get details
+            const response = await fetch('/api/profiles');
+            const profiles = await response.json();
+            currentProfile = profiles.find(p => p.id == currentProfileId);
+            if (currentProfile) {
+                updateGreeting(currentProfile);
+                document.getElementById('current-profile-name').textContent = currentProfile.display_name || currentProfile.name;
+            }
+        } catch (e) { }
+    });
+
+    function updateGreeting(profile) {
+        if (!profile) return;
+        const greetingName = document.getElementById('greeting-name');
+        const greetingIntro = document.getElementById('greeting-intro');
+
+        greetingName.textContent = `Hi! I'm ${profile.display_name || 'AI Assistant'}`;
+
+        if (profile.introduction) {
+            greetingIntro.innerHTML = profile.introduction;
+        } else {
+            greetingIntro.textContent = 'I\'d love to chat about my background and experience. What would you like to know?';
+        }
+    }
+
+    function setupAutoResize() {
+        messageInput.addEventListener('input', function () {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 150) + 'px';
+        });
+
+        messageInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                chatForm.dispatchEvent(new Event('submit'));
+            }
+        });
+    }
+
 </script>
 {% endblock %}

@@ -85,6 +85,10 @@ class ChatSession(db.Model):
     last_activity = db.Column(db.DateTime, default=datetime.utcnow)
     message_count = db.Column(db.Integer, default=0)
     
+    # User identification for history
+    user_identifier = db.Column(db.String(100), index=True, nullable=True)
+    title = db.Column(db.String(255), nullable=True)
+    
     # Relationship to messages
     messages = db.relationship('ChatMessage', backref='session', lazy=True, cascade='all, delete-orphan')
     

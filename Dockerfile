@@ -16,6 +16,6 @@ RUN mkdir -p instance uploads/resumes uploads/icons
 EXPOSE 8181
 
 # Run migrations and start app
-# Run migrations (both Flask-Migrate and manual script) and start app
-CMD python migrate_db.py && flask db upgrade 2>/dev/null || true && python -m app
-
+COPY entrypoint.sh /entrypoint.sh
+RUN chmod +x /entrypoint.sh
+ENTRYPOINT ["/entrypoint.sh"]

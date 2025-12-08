@@ -205,6 +205,12 @@
             </div>
         </main>
 
+        <!-- Scroll to bottom button -->
+        <button id="scroll-to-bottom-btn" onclick="scrollToBottom()"
+            class="absolute bottom-24 right-6 p-3 bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 rounded-full shadow-lg border border-gray-200 dark:border-gray-700 hover:bg-gray-50 dark:hover:bg-gray-700 transition-all duration-300 opacity-0 pointer-events-none translate-y-2 z-20 flex items-center justify-center">
+            <i data-lucide="arrow-down" class="w-5 h-5"></i>
+        </button>
+
         <!-- Input Area -->
         <footer
             class="bg-white dark:bg-gray-800 border-t border-gray-200 dark:border-gray-700 flex-none p-4 w-full z-10">
@@ -297,10 +303,12 @@
     const profileSelector = document.getElementById('profile-selector');
     const sidebar = document.getElementById('sidebar');
     const sidebarOverlay = document.getElementById('sidebar-overlay');
+    const scrollToBottomBtn = document.getElementById('scroll-to-bottom-btn');
 
     // --- Initialization ---
     document.addEventListener('DOMContentLoaded', async () => {
         setupAutoResize();
+        setupScrollListener();
         await loadProfiles();
         loadHistory();
 
@@ -381,10 +389,10 @@
         socket.on('typing', (data) => {
             if (data.typing) {
                 typingIndicator.classList.remove('hidden');
+                typingIndicator.scrollIntoView({ behavior: 'smooth', block: 'start' });
             } else {
                 typingIndicator.classList.add('hidden');
             }
-            scrollToBottom();
         });
     }
 
@@ -418,10 +426,11 @@
         // Connect socket (will generate new session ID on server)
         connectSocket();
 
-        // Close sidebar on mobile
-        if (window.innerWidth < 768) {
+        // Close sidebar on mobile if open
+        if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
             toggleSidebar();
         }
+        messageInput.focus();
     }
 
     async function loadSession(id) {
@@ -460,6 +469,7 @@
                         addMessage(msg.role, msg.content, msg.timestamp, false);
                     });
                     welcomeScreen.style.display = 'none';
+                    setTimeout(() => scrollToBottom(false), 10);
                 } else {
                     // No messages?
                     welcomeScreen.style.display = 'flex';
@@ -477,9 +487,10 @@
         connectSocket();
         updateHistoryActiveState();
 
-        if (window.innerWidth < 768) {
+        if (window.innerWidth < 768 && !sidebar.classList.contains('-translate-x-full')) {
             toggleSidebar(); // Close sidebar
         }
+        messageInput.focus();
     }
 
     async function loadHistory() {
@@ -658,21 +669,36 @@
 
         messagesContainer.appendChild(messageDiv);
         lucide.createIcons();
-        scrollToBottom(smoothScroll);
+        if (smoothScroll) {
+            messageDiv.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
     // --- Helpers ---
     function scrollToBottom(smooth = true) {
-        const scroll = () => {
-            // If typing indicator is visible, scroll to it
-            if (!typingIndicator.classList.contains('hidden')) {
-                typingIndicator.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'end' });
+        // If typing indicator is visible, scroll to it
+        if (!typingIndicator.classList.contains('hidden')) {
+            typingIndicator.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'start' });
+        } else {
+            // Scroll container to bottom
+            chatContainer.scrollTo({
+                top: chatContainer.scrollHeight,
+                behavior: smooth ? 'smooth' : 'auto'
+            });
+        }
+    }
+
+    function setupScrollListener() {
+        chatContainer.addEventListener('scroll', () => {
+            const distanceToBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight;
+            if (distanceToBottom > 200) {
+                scrollToBottomBtn.classList.remove('opacity-0', 'pointer-events-none', 'translate-y-2');
+                scrollToBottomBtn.classList.add('opacity-100', 'translate-y-0');
             } else {
-                // Scroll container to bottom
-                chatContainer.scrollTop = chatContainer.scrollHeight;
+                scrollToBottomBtn.classList.add('opacity-0', 'pointer-events-none', 'translate-y-2');
+                scrollToBottomBtn.classList.remove('opacity-100', 'translate-y-0');
             }
-        };
-        setTimeout(scroll, 50);
+        });
     }
 
     function formatDate(isoString) {

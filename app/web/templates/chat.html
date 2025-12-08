@@ -225,13 +225,47 @@
                 <div class="mt-2 text-center text-[10px] text-gray-400 dark:text-gray-500">
                     AI can make mistakes. Consider checking important information.
                 </div>
-                <div class="mt-2 text-center text-[10px] text-gray-400 dark:text-gray-500">
-                    Find out more about this chatbot
+                <div class="mt-2 text-center text-[10px]">
+                    <button onclick="openChatbotModal()"
+                        class="text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 underline">
+                        Find out more about this chatbot
+                    </button>
                 </div>
             </div>
         </footer>
     </div>
 </div>
+
+<!-- Chatbot Info Modal -->
+<div id="chatbot-info-modal" class="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 hidden">
+    <div class="bg-white dark:bg-gray-800 rounded-xl shadow-lg p-6 w-full max-w-md relative">
+
+        <!-- Close Button -->
+        <button onclick="closeChatbotModal()"
+            class="absolute top-3 right-3 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200">
+            <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+
+        <h2 class="text-xl font-semibold text-gray-900 dark:text-white mb-3">
+            About {{ settings.chatbot_name }}
+        </h2>
+
+        <p class="text-gray-700 dark:text-gray-300 leading-relaxed text-sm">
+            This AI assistant is designed to showcase Dan Walsh’s professional experience,
+            projects, skills, and background through an interactive conversational interface.
+            You can ask about technical skills, work experience, projects, analytics work,
+            software engineering knowledge, or anything related.
+        </p>
+
+        <div class="mt-4 text-right">
+            <button onclick="closeChatbotModal()"
+                class="px-4 py-2 text-sm bg-blue-500 hover:bg-blue-600 text-white rounded-lg shadow">
+                Close
+            </button>
+        </div>
+    </div>
+</div>
+
 
 <script>
     // --- User Identity Management ---
@@ -282,6 +316,14 @@
             startNewChat();
         }
     });
+
+    document.addEventListener('click', function (event) {
+        const modal = document.getElementById('chatbot-info-modal');
+        if (!modal.classList.contains('hidden') && event.target === modal) {
+            modal.classList.add('hidden');
+        }
+    });
+
 
     // --- Socket Connection ---
     function connectSocket() {
@@ -344,6 +386,18 @@
             scrollToBottom();
         });
     }
+
+
+    function openChatbotModal() {
+        const modal = document.getElementById('chatbot-info-modal');
+        modal.classList.remove('hidden');
+    }
+
+    function closeChatbotModal() {
+        const modal = document.getElementById('chatbot-info-modal');
+        modal.classList.add('hidden');
+    }
+
 
     let lastSessionIdWasKnown = false;
 

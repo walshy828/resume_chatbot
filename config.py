@@ -15,6 +15,7 @@ class Config:
     
     # Google Gemini
     GEMINI_API_KEY = os.getenv('GEMINI_API_KEY', '')
+    GEMINI_API_MODEL = os.getenv('GEMINI_API_MODEL', 'gemini-2.5-flash-lite')
     
     # File upload settings
     MAX_CONTENT_LENGTH = int(os.getenv('MAX_CONTENT_LENGTH', 16 * 1024 * 1024))  # 16MB max file size

@@ -224,7 +224,7 @@ Please respond to the user question strictly following the persona and instructi
         
         # Generate response with Gemini
         if app.config['GEMINI_API_KEY']:
-            model = genai.GenerativeModel('gemini-2.5-flash')
+            model = genai.GenerativeModel(app.config['GEMINI_API_MODEL'])
             
             # Configure generation parameters for better responses
             generation_config = {

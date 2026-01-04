@@ -1159,28 +1159,7 @@ def delete_chat_session(session_id):
     db.session.commit()
     return jsonify({'success': True})
 
-@app.route('/api/history/<session_id>/messages', methods=['GET'])
-def get_session_messages(session_id):
-    """Get messages for a specific session"""
-    user_identifier = request.args.get('user_identifier')
-    
-    # Security check: ensure session belongs to user
-    session = ChatSession.query.filter_by(
-        session_id=session_id
-    ).first_or_404()
-    
-    if session.user_identifier != user_identifier:
-        return jsonify({'error': 'Unauthorized'}), 403
-        
-    messages = ChatMessage.query.filter_by(session_id=session.id).order_by(ChatMessage.timestamp).all()
-    
-    return jsonify({
-        'messages': [{
-            'role': msg.role,
-            'content': msg.content,
-            'timestamp': msg.timestamp.isoformat()
-        } for msg in messages]
-    })
+
 
 if __name__ == '__main__':
     socketio.run(app, host='0.0.0.0', port=8080, debug=True)

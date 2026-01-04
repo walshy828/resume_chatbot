@@ -107,7 +107,7 @@ def get_location_from_ip(ip_address):
     except Exception:
         return "Unknown Location"
 
-def generate_chatbot_response(user_message, session_id, mode='conversational', profile_id=None):
+def generate_chatbot_response(user_message, session_id, mode='conversational', profile_id=None, stream=False):
     """
     Generate response using Google Gemini with conversation history context
     
@@ -116,9 +116,10 @@ def generate_chatbot_response(user_message, session_id, mode='conversational', p
         session_id: The session ID for retrieving conversation history
         mode: 'conversational' or 'simple'
         profile_id: Optional profile ID to filter resumes
+        stream: Whether to stream the response (returns generator) or return full text
         
     Returns:
-        Generated response text
+        Generated response text or generator
     """
     try:
         # Get settings and resume content
@@ -215,46 +216,13 @@ User Question: {user_message}
 
 Please respond to the user question strictly following the persona and instructions above."""
         
-        # Debug: Print the prompt being sent to Gemini
-        #print("\n" + "="*80)
-        #print("PROMPT SENT TO GEMINI:")
-        #print("="*80)
-        #print(full_prompt)
-        #print("="*80 + "\n")
-        
-        # Generate response with Gemini
-        if app.config['GEMINI_API_KEY']:
-            model = genai.GenerativeModel(app.config['GEMINI_API_MODEL'])
-            
-            # Configure generation parameters for better responses
-            generation_config = {
-                'temperature': 0.3 if mode == 'simple' else 0.7,  # Lower temperature for simple mode
-                'top_p': 0.9,
-                'top_k': 40,
-                'max_output_tokens': 2048,
-            }
-            
-            response = model.generate_content(
-                full_prompt,
-                generation_config=generation_config
-            )
-            
-            # Handle multi-part responses from newer Gemini models
-            try:
-                bot_response = response.text
-            except (ValueError, AttributeError):
-                # Fallback for different response structures
-                bot_response = str(response.candidates[0].content.parts[0].text) if response.candidates else "I apologize, but I'm having trouble generating a response right now."
-        else:
-            bot_response = "Gemini API key not configured. Please add your API key to use AI responses."
-        
-        # Check if user is requesting resume download
+        # Check if user is requesting resume download (handled separately from Gemini usually, but we check here)
         download_keywords = ['download', 'see resume', 'view resume', 'send resume', 
                             'share resume', 'resume file', 'resume pdf', 'get resume', 
                             'show resume', 'copy of resume', 'have your resume']
         is_resume_request = any(keyword in user_message.lower() for keyword in download_keywords)
+        download_link_text = ""
         
-        # If resume download requested, append download link
         if is_resume_request:
             # Get the profile to check for primary resume
             if profile_id:
@@ -268,9 +236,62 @@ Please respond to the user question strictly following the persona and instructi
                     download_url = url_for('uploaded_file', 
                                           filename=f'resumes/{primary_resume.filename}', 
                                           _external=True)
-                    bot_response += f"\n\nYou can download my resume here: {download_url}"
-        
-        return bot_response
+                    download_link_text = f"\n\nYou can download my resume here: {download_url}"
+
+        # Generate response with Gemini
+        if app.config['GEMINI_API_KEY']:
+            model = genai.GenerativeModel(app.config['GEMINI_API_MODEL'])
+            
+            # Configure generation parameters for better responses
+            generation_config = {
+                'temperature': 0.3 if mode == 'simple' else 0.7,
+                'top_p': 0.9,
+                'top_k': 40,
+                'max_output_tokens': 2048,
+            }
+            
+            if stream:
+                response = model.generate_content(
+                    full_prompt,
+                    generation_config=generation_config,
+                    stream=True
+                )
+                
+                # Generator function to yield chunks
+                def stream_generator():
+                    full_response = ""
+                    try:
+                        for chunk in response:
+                            if chunk.text:
+                                full_response += chunk.text
+                                yield chunk.text
+                    except Exception as e:
+                        print(f"Error acting on stream: {e}")
+                        yield " [Error generating response]"
+                        
+                    if download_link_text:
+                        yield download_link_text
+                        
+                return stream_generator()
+                
+            else:
+                # Non-streaming mode
+                response = model.generate_content(
+                    full_prompt,
+                    generation_config=generation_config
+                )
+                
+                try:
+                    bot_response = response.text
+                except (ValueError, AttributeError):
+                    bot_response = str(response.candidates[0].content.parts[0].text) if response.candidates else "I apologize, but I'm having trouble generating a response right now."
+                
+                if download_link_text:
+                    bot_response += download_link_text
+                    
+                return bot_response
+        else:
+            return "Gemini API key not configured. Please add your API key to use AI responses."
     
     except Exception as e:
         print(f"Error generating response: {e}")
@@ -878,6 +899,34 @@ def get_profiles():
         'is_default': p.is_default
     } for p in profiles])
 
+@app.route('/api/history/<session_id>/messages')
+def get_session_messages(session_id):
+    """Get messages for a specific session"""
+    user_identifier = request.args.get('user_identifier')
+    
+    # Find session by public session_id string
+    session = ChatSession.query.filter_by(session_id=session_id).first_or_404()
+    
+    # Optional: Verify ownership if user_identifier is used and set on session
+    if user_identifier and session.user_identifier and session.user_identifier != user_identifier:
+        return jsonify({'error': 'Unauthorized'}), 401
+    
+    # If session has no user_identifier but one was provided, maybe update it? 
+    # For now, let's keep it simple. If session was anonymous, anyone with ID can view?
+    # Ideally we should strictly enforce user_identifier for privacy if used.
+    
+    messages = ChatMessage.query.filter_by(session_id=session.id).order_by(ChatMessage.timestamp).all()
+    
+    return jsonify({
+        'session_id': session.session_id,
+        'title': session.title,
+        'messages': [{
+            'role': msg.role,
+            'content': msg.content,
+            'timestamp': msg.timestamp.isoformat()
+        } for msg in messages]
+    })
+
 @app.route('/admin/session/<int:session_id>')
 @admin_required
 def view_session(session_id):
@@ -1022,33 +1071,56 @@ def handle_message(data):
         'timestamp': user_msg.timestamp.isoformat()
     }, room=session_id)
     
-    # Generate bot response
+    # Notify client that bot is typing (or starting to stream)
     emit('typing', {'typing': True}, room=session_id)
     
     # Get mode and profile from data
     mode = data.get('mode', 'conversational')
     profile_id = data.get('profile_id')  # Will be None if not provided
     
-    bot_response = generate_chatbot_response(user_message, session_id, mode, profile_id)
+    # Start bot response stream
+    bot_timestamp = datetime.utcnow()
+    emit('message_start', {
+        'role': 'assistant',
+        'timestamp': bot_timestamp.isoformat()
+    }, room=session_id)
     
-    # Save bot message
+    full_response = ""
+    try:
+        # Get streaming generator
+        stream_gen = generate_chatbot_response(user_message, session_id, mode, profile_id, stream=True)
+        
+        if isinstance(stream_gen, str):
+            # Fallback if for some reason it returns string (e.g. error or API key missing)
+            full_response = stream_gen
+            emit('message_chunk', {'content': full_response}, room=session_id)
+        else:
+            # Iterate through stream
+            for chunk in stream_gen:
+                if chunk:
+                    full_response += chunk
+                    emit('message_chunk', {'content': chunk}, room=session_id)
+                    
+    except Exception as e:
+        print(f"Error in stream handling: {e}")
+        error_msg = "I encountered an error generating the response."
+        emit('message_chunk', {'content': error_msg}, room=session_id)
+        full_response += error_msg
+
+    # Finalize
+    emit('message_end', {}, room=session_id)
+    emit('typing', {'typing': False}, room=session_id)
+    
+    # Save bot message to DB
     bot_msg = ChatMessage(
         session_id=session.id,
         role='assistant',
-        content=bot_response
+        content=full_response,
+        timestamp=bot_timestamp
     )
     db.session.add(bot_msg)
     session.message_count += 1
     db.session.commit()
-    
-
-    # Send bot response
-    emit('typing', {'typing': False}, room=session_id)
-    emit('message', {
-        'role': 'assistant',
-        'content': bot_response,
-        'timestamp': bot_msg.timestamp.isoformat()
-    }, room=session_id)
     
     # Update session title if first message
     if session.message_count <= 2 and not session.title:

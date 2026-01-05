@@ -13,6 +13,7 @@ services:
       - ADMIN_USERNAME=${ADMIN_USERNAME:-admin}
       - ADMIN_PASSWORD=${ADMIN_PASSWORD:-admin}
       - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-http://localhost:8181,http://127.0.0.1:8181}
+      - IS_PRODUCTION=${IS_PRODUCTION:-false}
     volumes:
       - ./instance:/app/instance
       - ./uploads:/app/uploads

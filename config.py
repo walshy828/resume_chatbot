@@ -34,10 +34,11 @@ class Config:
     DEFAULT_ADMIN_PASSWORD = os.getenv('DEFAULT_ADMIN_PASSWORD', 'changeme123')
     
     # Session settings
+    IS_PRODUCTION = os.getenv('IS_PRODUCTION', 'False').lower() == 'true'
     PERMANENT_SESSION_LIFETIME = int(os.getenv('SESSION_LIFETIME', 3600))  # 1 hour default
-    SESSION_COOKIE_SECURE = os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
+    SESSION_COOKIE_SECURE = IS_PRODUCTION or os.getenv('SESSION_COOKIE_SECURE', 'False').lower() == 'true'
     SESSION_COOKIE_HTTPONLY = True
-    SESSION_COOKIE_SAMESITE = 'Strict'  # Changed from 'Lax' for better security
+    SESSION_COOKIE_SAMESITE = 'Strict'
     SESSION_REFRESH_EACH_REQUEST = True
     
     # CSRF Protection

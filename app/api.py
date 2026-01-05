@@ -63,6 +63,12 @@ os.makedirs(app.config['ICONS_FOLDER'], exist_ok=True)
 
 # Initialize database
 with app.app_context():
+    # Security check: Ensure secret key is changed in production
+    if app.config.get('IS_PRODUCTION') and app.config.get('SECRET_KEY') == 'dev-secret-key-change-in-production':
+        app.logger.error("CRITICAL: Default SECRET_KEY used in production environment! Shutting down for security.")
+        import sys
+        sys.exit(1)
+
     db.create_all()
     init_default_admin(app)
     # Initialize default settings
@@ -121,6 +127,24 @@ def generate_chatbot_response(user_message, session_id, mode='conversational', p
     Returns:
         Generated response text or generator
     """
+    # Prompt injection protection
+    injection_keywords = [
+        "ignore previous instructions", 
+        "ignore all instructions",
+        "system prompt", 
+        "reveal your instructions",
+        "act as",
+        "you are now",
+        "sql", "delete", "drop table", # Basic SQL injection check if AI is tricked into DB access
+        "<script>", "javascript:" # Basic XSS
+    ]
+    
+    clean_message = user_message.lower()
+    if any(keyword in clean_message for keyword in injection_keywords):
+        sec_log.log_suspicious_activity(f"Potential prompt injection detected: {user_message}", 
+                                       username=f"Session:{session_id}")
+        return "I'm sorry, I cannot fulfill that request as it deviates from my professional persona."
+
     try:
         # Get settings and resume content
         settings = Settings.get_settings()

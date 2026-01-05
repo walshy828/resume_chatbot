@@ -63,6 +63,17 @@ All security events logged to `logs/security.log`:
 - Password changes
 - User management actions
 - Unauthorized access attempts
+- Suspicious activity and potential prompt injections
+
+### 🤖 AI Prompt Protection
+- **Input Filtering**: Automatic detection and blocking of common prompt injection patterns (e.g., "ignore previous instructions").
+- **Persona Context**: Strict adherence to the professional persona defined in the configuration.
+- **Safety Logs**: All detected injection attempts are logged for review.
+
+### 🐳 Docker Infrastructure Hardening
+- **Non-Root Execution**: The application runs as a dedicated `appuser` (UID 1000) inside the container.
+- **Production Safeties**: Automatic detection of `IS_PRODUCTION=true` to enforce secure cookies and block default secret keys.
+- **Directory Isolation**: Strict ownership and permission control for the `/app` and its data volumes.
 
 ## 🛡️ Security Features
 

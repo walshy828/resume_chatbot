@@ -10,7 +10,8 @@ class Config:
     SECRET_KEY = os.getenv('SECRET_KEY', 'dev-secret-key-change-in-production')
     
     # Database
-    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URI', 'sqlite:///chatbot.db')
+    # Use instance folder for SQLite to ensure it's persisted and writable in Docker
+    SQLALCHEMY_DATABASE_URI = os.getenv('DATABASE_URI', 'sqlite:///instance/chatbot.db')
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Google Gemini

@@ -1,0 +1,353 @@
+{% extends "admin/admin_base.html" %}
+
+{% block title %}Artifact Management - {{ config.APP_NAME }}{% endblock %}
+
+{% block admin_title %}Resume Artifacts{% endblock %}
+
+{% block admin_content %}
+<div class="px-8 py-8 h-full flex flex-col space-y-8 overflow-hidden bg-gray-50/50 dark:bg-gray-900/50">
+    <div class="flex-none flex items-center justify-between">
+        <div>
+            <h1 class="text-2xl font-display font-bold text-gray-900 dark:text-white">Artifact Command Center</h1>
+            <p class="text-sm text-gray-500 mt-1">Ingest, analyze and assign content to your AI profiles.</p>
+        </div>
+        <div class="flex items-center space-x-3">
+            <button onclick="document.getElementById('file-upload').click()"
+                class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-500/20 transition-all font-bold text-sm flex items-center">
+                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                New Artifact
+            </button>
+            <input type="file" id="file-upload" class="hidden" accept=".pdf,.doc,.docx,.txt" multiple>
+        </div>
+    </div>
+
+    <!-- Main Workspace -->
+    <div class="flex-1 flex gap-8 overflow-hidden min-h-0">
+        <!-- Explorer: Artifact List -->
+        <div
+            class="flex-1 flex flex-col bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm overflow-hidden">
+            <!-- Search & Filters -->
+            <div
+                class="p-4 border-b border-gray-100 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-800/50 flex items-center gap-4">
+                <div class="relative flex-1">
+                    <i data-lucide="search" class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                    <input type="text" placeholder="Search filename or content..."
+                        class="w-full pl-10 pr-4 py-2 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                </div>
+                <div
+                    class="flex items-center bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl px-2">
+                    <button class="p-1.5 text-blue-600 bg-blue-50 dark:bg-blue-900/40 rounded-lg">
+                        <i data-lucide="layout-list" class="w-4 h-4"></i>
+                    </button>
+                    <button class="p-1.5 text-gray-400 hover:text-gray-600">
+                        <i data-lucide="layout-grid" class="w-4 h-4"></i>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Table -->
+            <div class="flex-1 overflow-y-auto overflow-x-auto no-scrollbar">
+                <table class="w-full text-left border-collapse">
+                    <thead class="sticky top-0 bg-white dark:bg-gray-800 z-10">
+                        <tr
+                            class="text-[10px] font-bold text-gray-400 uppercase tracking-widest border-b border-gray-100 dark:border-gray-700">
+                            <th class="px-8 py-4">Status & Name</th>
+                            <th class="px-8 py-4">Deployment Tags</th>
+                            <th class="px-8 py-4 text-right">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-gray-50 dark:divide-gray-700/50">
+                        {% for resume in resumes %}
+                        <tr class="group hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors cursor-pointer"
+                            onclick="openArtifact('{{ resume.id }}')">
+                            <td class="px-8 py-4">
+                                <div class="flex items-center space-x-4">
+                                    <div class="relative">
+                                        <div
+                                            class="w-10 h-10 rounded-xl bg-gray-50 dark:bg-gray-700 flex items-center justify-center group-hover:bg-white dark:group-hover:bg-gray-600 transition-colors shadow-sm">
+                                            {% if resume.original_filename.endswith('.pdf') %}
+                                            <i data-lucide="file-text" class="w-5 h-5 text-red-500"></i>
+                                            {% else %}
+                                            <i data-lucide="file-code" class="w-5 h-5 text-blue-500"></i>
+                                            {% endif %}
+                                        </div>
+                                        <div
+                                            class="absolute -top-1 -right-1 w-3 h-3 border-2 border-white dark:border-gray-800 rounded-full bg-green-500">
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <p class="text-sm font-bold text-gray-900 dark:text-white">{{
+                                            resume.original_filename }}</p>
+                                        <p class="text-[10px] font-bold text-gray-400 uppercase tracking-tighter">
+                                            Added {{ resume.uploaded_at.strftime('%b %d, %Y') }}
+                                        </p>
+                                    </div>
+                                </div>
+                            </td>
+                            <td class="px-8 py-4">
+                                <div class="flex flex-wrap gap-1.5">
+                                    {% if resume.profiles %}
+                                    {% for profile in resume.profiles %}
+                                    <span
+                                        class="px-2 py-0.5 rounded-md text-[10px] font-bold bg-gray-100 dark:bg-gray-700 text-gray-600 dark:text-gray-300">
+                                        {{ profile.name }}
+                                    </span>
+                                    {% endfor %}
+                                    {% else %}
+                                    <span
+                                        class="text-[10px] font-bold text-orange-500 uppercase tracking-widest flex items-center">
+                                        <i data-lucide="alert-circle" class="w-3 h-3 mr-1"></i>
+                                        Unassigned
+                                    </span>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="px-8 py-4 text-right">
+                                <div
+                                    class="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                    <a href="{{ url_for('uploaded_file', filename='resumes/' + resume.filename) }}"
+                                        target="_blank" class="p-2 text-gray-400 hover:text-blue-500 transition-colors">
+                                        <i data-lucide="download" class="w-4 h-4"></i>
+                                    </a>
+                                    <form method="POST" action="{{ url_for('delete_resume', resume_id=resume.id) }}"
+                                        class="inline" onsubmit="return confirm('Purge this artifact?');">
+                                        <button type="submit"
+                                            class="p-2 text-gray-400 hover:text-red-500 transition-colors">
+                                            <i data-lucide="trash-2" class="w-4 h-4"></i>
+                                        </button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <!-- Sidebar: Ingestion Panel / Detail View -->
+        <aside id="artifact-drawer"
+            class="w-[450px] hidden lg:flex flex-col bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-xl overflow-hidden animate-in slide-in-from-right duration-300">
+            <!-- Empty State -->
+            <div id="drawer-empty" class="flex-1 flex flex-col items-center justify-center p-12 text-center">
+                <div
+                    class="w-20 h-20 rounded-full bg-gray-50 dark:bg-gray-900/50 flex items-center justify-center mb-6">
+                    <i data-lucide="mouse-pointer-2" class="w-8 h-8 text-gray-300 animate-bounce"></i>
+                </div>
+                <h3 class="text-lg font-bold text-gray-900 dark:text-white uppercase tracking-tight">Select an Artifact
+                </h3>
+                <p class="text-sm text-gray-400 mt-2">Click any artifact to analyze content, modify metadata, or adjust
+                    profile deployments.</p>
+            </div>
+
+            <!-- Detail State (Hidden by default) -->
+            <div id="drawer-content" class="hidden flex-1 flex flex-col min-h-0">
+                <div
+                    class="p-6 border-b border-gray-100 dark:border-gray-700 flex items-center justify-between bg-gray-50/50 dark:bg-gray-900/20">
+                    <div class="flex items-center space-x-3">
+                        <div class="w-10 h-10 rounded-xl bg-blue-600 flex items-center justify-center text-white">
+                            <i data-lucide="text-quote" class="w-5 h-5"></i>
+                        </div>
+                        <div>
+                            <h3 id="current-artifact-name"
+                                class="text-sm font-bold text-gray-900 dark:text-white truncate max-w-[200px]">
+                                Artifact.pdf</h3>
+                            <p class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Detail View</p>
+                        </div>
+                    </div>
+                    <button onclick="closeArtifact()"
+                        class="p-2 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors">
+                        <i data-lucide="x" class="w-5 h-5 text-gray-400"></i>
+                    </button>
+                </div>
+
+                <div class="flex-1 overflow-y-auto p-6 space-y-8 no-scrollbar">
+                    <!-- Text Content Preview -->
+                    <div class="space-y-4">
+                        <div class="flex items-center justify-between">
+                            <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Extracted
+                                Content</label>
+                            <span class="text-[10px] font-bold text-blue-500">AI-Indexed</span>
+                        </div>
+                        <div class="relative group">
+                            <textarea id="artifact-content" rows="12"
+                                class="w-full bg-gray-50 dark:bg-gray-900/50 border border-gray-200 dark:border-gray-700 rounded-2xl p-4 text-xs font-mono leading-relaxed focus:ring-2 focus:ring-blue-500 outline-none transition-all"></textarea>
+                            <div class="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
+                                <button
+                                    class="p-2 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-lg shadow-sm hover:text-blue-500">
+                                    <i data-lucide="copy" class="w-3 h-3"></i>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Profile Deployment -->
+                    <div class="space-y-4">
+                        <label class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Profile
+                            Deployment</label>
+                        <div class="grid grid-cols-1 gap-2">
+                            {% for profile in profiles %}
+                            <label
+                                class="flex items-center justify-between p-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl cursor-pointer hover:border-blue-500/50 transition-all group">
+                                <div class="flex items-center">
+                                    <div
+                                        class="w-8 h-8 rounded-lg bg-white dark:bg-gray-800 flex items-center justify-center mr-3 shadow-sm">
+                                        <i data-lucide="user-round"
+                                            class="w-4 h-4 text-gray-400 group-hover:text-blue-500 transition-colors"></i>
+                                    </div>
+                                    <span class="text-xs font-bold text-gray-700 dark:text-gray-300">{{ profile.name
+                                        }}</span>
+                                </div>
+                                <input type="checkbox" name="profile_ids" value="{{ profile.id }}"
+                                    class="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Footer Actions -->
+                <div
+                    class="p-6 bg-gray-50/50 dark:bg-gray-900/20 border-t border-gray-100 dark:border-gray-700 flex items-center justify-between gap-4">
+                    <button
+                        class="flex-1 px-4 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-sm transition-all shadow-lg shadow-blue-500/20"
+                        onclick="saveArtifactChanges()">
+                        Push Changes
+                    </button>
+                    <button class="p-3 bg-red-50 text-red-500 hover:bg-red-100 rounded-2xl transition-colors">
+                        <i data-lucide="trash" class="w-5 h-5"></i>
+                    </button>
+                </div>
+            </div>
+        </aside>
+    </div>
+</div>
+
+<!-- Upload Overlay (Drag/Drop) -->
+<div id="drop-overlay"
+    class="fixed inset-0 z-50 bg-blue-600/90 backdrop-blur-sm hidden flex-col items-center justify-center text-white space-y-4 animate-in fade-in zoom-in duration-200">
+    <div class="w-32 h-32 rounded-full border-4 border-dashed border-white/50 flex items-center justify-center">
+        <i data-lucide="upload-cloud" class="w-16 h-16 animate-pulse"></i>
+    </div>
+    <h2 class="text-3xl font-display font-bold">Release to Ingest</h2>
+    <p class="text-blue-100/80 font-medium font-mono uppercase tracking-widest text-xs">Parsing contents in real-time
+    </p>
+</div>
+
+<script>
+    let currentArtifactId = null;
+
+    async function openArtifact(id) {
+        currentArtifactId = id;
+        const drawer = document.getElementById('artifact-drawer');
+        const empty = document.getElementById('drawer-empty');
+        const content = document.getElementById('drawer-content');
+
+        // Show loading state or immediately show drawer
+        drawer.classList.remove('hidden');
+        drawer.classList.add('flex');
+
+        try {
+            const response = await fetch(`/admin/resume/${id}`);
+            const data = await response.json();
+
+            document.getElementById('current-artifact-name').textContent = data.filename;
+            document.getElementById('artifact-content').value = data.content;
+
+            // Set checkboxes for profiles
+            const checkboxes = document.querySelectorAll('input[name="profile_ids"]');
+            checkboxes.forEach(cb => {
+                cb.checked = data.profile_ids.includes(parseInt(cb.value));
+            });
+
+            empty.classList.add('hidden');
+            content.classList.remove('hidden');
+        } catch (error) {
+            showToast('Error loading artifact', 'error');
+        }
+    }
+
+    function closeArtifact() {
+        document.getElementById('drawer-empty').classList.remove('hidden');
+        document.getElementById('drawer-content').classList.add('hidden');
+    }
+
+    async function saveArtifactChanges() {
+        if (!currentArtifactId) return;
+
+        const content = document.getElementById('artifact-content').value;
+        const profileIds = Array.from(document.querySelectorAll('input[name="profile_ids"]:checked')).map(cb => cb.value);
+
+        const formData = new FormData();
+        formData.append('content', content);
+        profileIds.forEach(id => formData.append('profile_ids', id));
+
+        try {
+            const response = await fetch(`/admin/resume/${currentArtifactId}/update`, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (response.ok) {
+                showToast('Artifact updated successfully', 'success');
+                window.showAutoSave();
+                setTimeout(() => location.reload(), 500);
+            }
+        } catch (e) {
+            showToast('Failed to push changes', 'error');
+        }
+    }
+
+    // Drag and drop logic
+    const body = document.body;
+    const overlay = document.getElementById('drop-overlay');
+
+    window.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        overlay.classList.remove('hidden');
+    });
+
+    overlay.addEventListener('dragover', (e) => e.preventDefault());
+    overlay.addEventListener('dragleave', (e) => {
+        if (!e.relatedTarget) overlay.classList.add('hidden');
+    });
+
+    overlay.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        overlay.classList.add('hidden');
+
+        const files = e.dataTransfer.files;
+        if (files.length > 0) {
+            const formData = new FormData();
+            formData.append('resume', files[0]);
+
+            showToast('Extracting core info...', 'info');
+
+            try {
+                const response = await fetch("{{ url_for('upload_resume') }}", {
+                    method: 'POST',
+                    body: formData
+                });
+                if (response.ok) {
+                    showToast('Artifact indexed!', 'success');
+                    setTimeout(() => location.reload(), 800);
+                }
+            } catch (err) {
+                showToast('Ingestion failed', 'error');
+            }
+        }
+    });
+
+    // Native file input click handling
+    document.getElementById('file-upload').addEventListener('change', async function () {
+        if (this.files.length > 0) {
+            const formData = new FormData();
+            formData.append('resume', this.files[0]);
+            showToast('Ingesting...', 'info');
+            const response = await fetch("{{ url_for('upload_resume') }}", { method: 'POST', body: formData });
+            if (response.ok) location.reload();
+        }
+    });
+
+</script>
+{% endblock %}

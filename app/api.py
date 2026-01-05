@@ -640,29 +640,37 @@ def admin_analytics():
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @admin_required
 def admin_settings():
-    """Settings configuration"""
+    """Admin settings page"""
     settings = Settings.get_settings()
-    resumes = Resume.get_active_resumes()
     
     if request.method == 'POST':
-        settings.chatbot_name = request.form.get('chatbot_name', settings.chatbot_name)
-        settings.personality_prompt = request.form.get('personality_prompt', settings.personality_prompt)
+        settings.chatbot_name = request.form.get('chatbot_name')
+        settings.personality_prompt = request.form.get('personality_prompt')
         
         # Handle icon upload
         if 'chatbot_icon' in request.files:
             file = request.files['chatbot_icon']
-            if file and file.filename and allowed_file(file.filename, app.config['ALLOWED_ICON_EXTENSIONS']):
+            if file and file.filename:
+                # In production, we'd use secure_filename and a proper storage
                 filename = secure_filename(file.filename)
-                unique_filename = f"{uuid.uuid4()}_{filename}"
-                file_path = os.path.join(app.config['ICONS_FOLDER'], unique_filename)
-                file.save(file_path)
-                settings.chatbot_icon = f"icons/{unique_filename}"
+                # Ensure unique filename
+                filename = f"{uuid.uuid4().hex}_{filename}"
+                file.save(os.path.join(app.config['UPLOAD_FOLDER'], 'icons', filename))
+                settings.chatbot_icon = f"/uploads/icons/{filename}"
         
         db.session.commit()
-        flash('Settings updated successfully!', 'success')
+        flash('Settings updated successfully', 'success')
         return redirect(url_for('admin_settings'))
     
-    return render_template('admin/settings.html', settings=settings, resumes=resumes)
+    return render_template('admin/settings.html', settings=settings)
+
+@app.route('/admin/artifacts')
+@admin_required
+def admin_artifacts():
+    """Dedicated management page for resumes and artifacts"""
+    resumes = Resume.query.order_by(Resume.uploaded_at.desc()).all()
+    profiles = Profile.query.all()
+    return render_template('admin/artifacts.html', resumes=resumes, profiles=profiles)
 
 @app.route('/admin/upload-resume', methods=['POST'])
 @admin_required
@@ -764,27 +772,46 @@ def get_resume(resume_id):
 @app.route('/admin/resume/<int:resume_id>/update', methods=['POST'])
 @admin_required
 def update_resume(resume_id):
-    """Update resume content and filename (for text artifacts)"""
+    """Update resume content, filename, and profile assignments"""
     resume = Resume.query.get_or_404(resume_id)
     content = request.form.get('content')
     filename = request.form.get('filename')
+    profile_ids = request.form.getlist('profile_ids')
     
     if content is None:
         return jsonify({'error': 'No content provided'}), 400
         
     try:
-        # Update database
+        # Update database fields
         resume.content = content
         if filename:
             resume.original_filename = filename.strip()
         
-        # Update file
+        # Handle Profile assignments
+        if profile_ids:
+            # Sync assignments
+            new_profiles = Profile.query.filter(Profile.id.in_([int(pid) for pid in profile_ids])).all()
+            resume.profiles = new_profiles
+        else:
+            # If no profiles selected, clear assignments
+            resume.profiles = []
+
+        # Update physical file
         with open(resume.file_path, 'w', encoding='utf-8') as f:
             f.write(content)
             
         db.session.commit()
-        return jsonify({'success': True, 'message': 'Resume updated successfully'})
+        
+        sec_log.log_admin_action('Update artifact', current_user.username, 
+                                f'Updated artifact: {resume.original_filename} (Profiles: {len(resume.profiles)})')
+                                
+        return jsonify({
+            'success': True, 
+            'message': 'Artifact synced and deployed successfully',
+            'id': resume.id
+        })
     except Exception as e:
+        db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
 @app.route('/admin/delete-resume/<int:resume_id>', methods=['POST'])

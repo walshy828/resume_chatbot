@@ -1,69 +1,81 @@
 {% extends "base.html" %}
 
-{% block title %}Admin Login{% endblock %}
+{% block title %}Authentication Portal - {{ config.APP_NAME }}{% endblock %}
 
 {% block content %}
-<div class="min-h-screen flex items-center justify-center px-4 py-12">
-    <div class="max-w-md w-full">
-        <!-- Logo/Header -->
-        <div class="text-center mb-8">
+<div class="min-h-screen flex items-center justify-center p-6 bg-gray-50 dark:bg-gray-950 relative overflow-hidden">
+    <!-- Decorative background elements -->
+    <div class="absolute top-0 right-0 -translate-y-1/2 translate-x-1/2 w-96 h-96 bg-blue-500/10 rounded-full blur-3xl">
+    </div>
+    <div
+        class="absolute bottom-0 left-0 translate-y-1/2 -translate-x-1/2 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl">
+    </div>
+
+    <div class="max-w-md w-full relative z-10">
+        <!-- Brand / Logo -->
+        <div class="text-center mb-10">
             <div
-                class="inline-flex items-center justify-center w-16 h-16 rounded-full bg-gradient-to-br from-blue-500 to-purple-600 mb-4">
-                <i data-lucide="shield-check" class="w-8 h-8 text-white"></i>
+                class="inline-flex items-center justify-center w-20 h-20 rounded-[2rem] bg-gray-900 dark:bg-white text-white dark:text-gray-900 shadow-2xl mb-6 transform rotate-3 hover:rotate-0 transition-transform duration-500">
+                <i data-lucide="shield-check" class="w-10 h-10"></i>
             </div>
-            <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white mb-2">Admin Login</h1>
-            <p class="text-gray-600 dark:text-gray-400">Sign in to access the admin panel</p>
+            <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white tracking-tight">Admin Console</h1>
+            <p class="text-sm text-gray-500 mt-2 font-medium">Verify your credentials to initialize session</p>
         </div>
 
-        <!-- Login Form -->
-        <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8">
-            <form method="POST" action="{{ url_for('admin_login') }}" class="space-y-6">
-                <!-- Username -->
-                <div>
-                    <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Username
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
+        <!-- Auth Card -->
+        <div
+            class="bg-white/80 dark:bg-gray-900/50 backdrop-blur-xl rounded-[3rem] shadow-2xl shadow-blue-500/5 border border-white dark:border-gray-800 p-10">
+            <form method="POST" action="{{ url_for('admin_login') }}" class="space-y-8">
+                <div class="space-y-6">
+                    <!-- Username -->
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Operator
+                            ID</label>
+                        <div class="relative group">
+                            <i data-lucide="user"
+                                class="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                            <input type="text" id="username" name="username" required autocomplete="username"
+                                placeholder="Username"
+                                class="w-full pl-14 pr-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white">
                         </div>
-                        <input type="text" id="username" name="username" required autocomplete="username"
-                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Enter your username">
+                    </div>
+
+                    <!-- Password -->
+                    <div>
+                        <label
+                            class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-3 px-1">Access
+                            Pass</label>
+                        <div class="relative group">
+                            <i data-lucide="lock"
+                                class="absolute left-5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                            <input type="password" id="password" name="password" required
+                                autocomplete="current-password" placeholder="Password"
+                                class="w-full pl-14 pr-5 py-4 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white">
+                        </div>
                     </div>
                 </div>
 
-                <!-- Password -->
-                <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                        Password
-                    </label>
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-                        </div>
-                        <input type="password" id="password" name="password" required autocomplete="current-password"
-                            class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Enter your password">
-                    </div>
-                </div>
+                <div class="pt-2">
+                    <button type="submit"
+                        class="w-full py-5 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl transition-all hover:-translate-y-1 active:scale-95 flex items-center justify-center">
+                        Initialize Portal
+                        <i data-lucide="arrow-right" class="w-4 h-4 ml-2"></i>
+                    </button>
 
-                <!-- Submit Button -->
-                <button type="submit"
-                    class="w-full bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-3 px-4 rounded-lg transition-all duration-200 transform hover:scale-[1.02] focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                    Sign In
-                </button>
+                    <a href="{{ url_for('index') }}"
+                        class="mt-6 flex items-center justify-center text-[10px] font-bold text-gray-400 hover:text-blue-500 uppercase tracking-widest transition-colors">
+                        <i data-lucide="corner-down-left" class="w-3 h-3 mr-2"></i>
+                        Return to public interface
+                    </a>
+                </div>
             </form>
         </div>
 
-        <!-- Back to Chat -->
-        <div class="text-center mt-6">
-            <a href="{{ url_for('index') }}"
-                class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 inline-flex items-center space-x-1">
-                <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                <span>Back to Chat</span>
-            </a>
-        </div>
+        <!-- Support Info -->
+        <p class="text-center mt-10 text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em]">
+            Secure Shell Environment • v1.2.0
+        </p>
     </div>
 </div>
 {% endblock %}

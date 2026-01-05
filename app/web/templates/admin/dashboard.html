@@ -17,7 +17,7 @@
                     providing professional insights to your visitors.</p>
             </div>
             <div class="flex items-center space-x-3">
-                <a href="{{ url_for('admin_settings') }}"
+                <a href="{{ url_for('admin_artifacts') }}"
                     class="px-5 py-2.5 bg-white/10 hover:bg-white/20 backdrop-blur-md border border-white/20 rounded-xl transition-all font-bold text-sm">
                     Manage Artifacts
                 </a>
@@ -36,7 +36,7 @@
 
     <!-- Stats Grid -->
     <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
-        <div
+        <a href="{{ url_for('admin_analytics') }}"
             class="group bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
             <div class="flex items-start justify-between">
                 <div>
@@ -53,9 +53,9 @@
                 <i data-lucide="trending-up" class="w-3 h-3 mr-1"></i>
                 Real-time tracking enabled
             </div>
-        </div>
+        </a>
 
-        <div
+        <a href="{{ url_for('admin_analytics', sort='messages') }}"
             class="group bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
             <div class="flex items-start justify-between">
                 <div>
@@ -72,10 +72,10 @@
                 <i data-lucide="zap" class="w-3 h-3 mr-1"></i>
                 AI Response optimization active
             </div>
-        </div>
+        </a>
 
         <div
-            class="group bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300">
+            class="group bg-white dark:bg-gray-800 p-8 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300 cursor-help">
             <div class="flex items-start justify-between">
                 <div>
                     <p class="text-xs font-bold text-gray-400 dark:text-gray-500 uppercase tracking-widest mb-1">
@@ -132,13 +132,13 @@
                                     class="px-8 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">
                                     Vol</th>
                                 <th
-                                    class="px-8 py-4 text-left text-[10px] font-bold text-gray-400 uppercase tracking-widest">
-                                    Velocity</th>
+                                    class="px-8 py-4 text-right text-[10px] font-bold text-gray-400 uppercase tracking-widest">
+                                    Action</th>
                             </tr>
                         </thead>
                         <tbody class="divide-y divide-gray-100 dark:divide-gray-800">
                             {% for session in recent_sessions %}
-                            <tr class="group hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors">
+                            <tr class="group hover:bg-blue-50/30 dark:hover:bg-blue-900/10 transition-colors">
                                 <td class="px-8 py-5">
                                     <div class="flex items-center space-x-3">
                                         <div
@@ -166,10 +166,12 @@
                                         {{ session.message_count }} msgs
                                     </span>
                                 </td>
-                                <td class="px-8 py-5">
-                                    <div class="text-[11px] font-bold text-gray-500 uppercase tracking-tighter">
-                                        {{ session.last_activity.strftime('%H:%M') }}
-                                    </div>
+                                <td class="px-8 py-5 text-right">
+                                    <a href="{{ url_for('admin_analytics') }}?search={{ session.session_id }}"
+                                        class="px-3 py-1 bg-gray-100 dark:bg-gray-700 hover:bg-blue-600 hover:text-white text-gray-600 dark:text-gray-300 rounded-lg text-[10px] font-bold uppercase transition-all inline-flex items-center">
+                                        Inspect
+                                        <i data-lucide="arrow-right" class="w-3 h-3 ml-1"></i>
+                                    </a>
                                 </td>
                             </tr>
                             {% else %}

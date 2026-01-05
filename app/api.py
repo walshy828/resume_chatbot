@@ -766,7 +766,8 @@ def get_resume(resume_id):
         'id': resume.id,
         'filename': resume.original_filename,
         'content': resume.content,
-        'is_text': resume.original_filename.endswith('.txt')
+        'is_text': resume.original_filename.endswith('.txt'),
+        'profile_ids': [p.id for p in resume.profiles]
     })
 
 @app.route('/admin/resume/<int:resume_id>/update', methods=['POST'])

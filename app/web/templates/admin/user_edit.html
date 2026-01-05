@@ -1,174 +1,149 @@
-{% extends "base.html" %}
+{% extends "admin/admin_base.html" %}
 
-{% block title %}{% if user %}Edit User{% else %}Create User{% endif %}{% endblock %}
+{% block title %}{% if user %}Edit Personnel{% else %}Provision Personnel{% endif %} - {{ config.APP_NAME }}{% endblock
+%}
 
-{% block content %}
-<div class="container mx-auto px-4 py-8 max-w-2xl">
-    <!-- Header -->
-    <div class="mb-8">
-        <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white mb-2">
-            {% if user %}Edit User: {{ user.username }}{% else %}Create New User{% endif %}
-        </h1>
-        <p class="text-gray-600 dark:text-gray-400">
-            {% if user %}Update user information and permissions{% else %}Add a new admin user to the system{% endif %}
-        </p>
-    </div>
+{% block admin_title %}Operator Configuration{% endblock %}
 
-    <!-- User Form -->
-    <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-200 dark:border-gray-700 p-8">
-        <form method="POST" class="space-y-6">
-            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-
-            <!-- Username -->
-            <div>
-                <label for="username" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Username <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="user" class="w-5 h-5 text-gray-400"></i>
-                    </div>
-                    <input type="text" id="username" name="username" required
-                        value="{{ user.username if user else '' }}"
-                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter username">
-                </div>
+{% block admin_content %}
+<div class="px-8 py-12 flex items-center justify-center">
+    <div class="max-w-2xl w-full space-y-8">
+        <!-- Header -->
+        <div class="flex items-center space-x-6">
+            <div class="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center text-white shadow-lg">
+                <i data-lucide="{% if user %}user-cog{% else %}user-plus{% endif %}" class="w-8 h-8"></i>
             </div>
-
-            <!-- Email -->
             <div>
-                <label for="email" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Email Address
-                </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="mail" class="w-5 h-5 text-gray-400"></i>
-                    </div>
-                    <input type="email" id="email" name="email" value="{{ user.email if user and user.email else '' }}"
-                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="user@example.com">
-                </div>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">Optional - for password reset notifications</p>
-            </div>
-
-            {% if not user %}
-            <!-- Password (Create Only) -->
-            <div>
-                <label for="password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Password <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="lock" class="w-5 h-5 text-gray-400"></i>
-                    </div>
-                    <input type="password" id="password" name="password" required
-                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Enter password">
-                </div>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Must be at least 12 characters with uppercase, lowercase, numbers, and special characters
+                <h1 class="text-2xl font-display font-bold text-gray-900 dark:text-white">
+                    {% if user %}Modify Operator: {{ user.username }}{% else %}Provision New Operator{% endif %}
+                </h1>
+                <p class="text-sm text-gray-500 mt-1">
+                    {% if user %}Update credentials and operational permissions.{% else %}Grant administrative access to
+                    a new user.{% endif %}
                 </p>
             </div>
+        </div>
 
-            <!-- Confirm Password (Create Only) -->
-            <div>
-                <label for="confirm_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    Confirm Password <span class="text-red-500">*</span>
-                </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="check-circle" class="w-5 h-5 text-gray-400"></i>
-                    </div>
-                    <input type="password" id="confirm_password" name="confirm_password" required
-                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Confirm password">
-                </div>
-            </div>
-            {% else %}
-            <!-- New Password (Edit Only) -->
-            <div>
-                <label for="new_password" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                    New Password
-                </label>
-                <div class="relative">
-                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <i data-lucide="key" class="w-5 h-5 text-gray-400"></i>
-                    </div>
-                    <input type="password" id="new_password" name="new_password"
-                        class="block w-full pl-10 pr-3 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                        placeholder="Leave blank to keep current password">
-                </div>
-                <p class="mt-1 text-xs text-gray-500 dark:text-gray-400">
-                    Leave blank to keep current password
-                </p>
-            </div>
-            {% endif %}
+        <!-- Form Workspace -->
+        <div
+            class="bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700 p-10 shadow-sm">
+            <form method="POST" class="space-y-8">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
 
-            <!-- Active Status (Edit Only) -->
-            {% if user %}
-            <div class="flex items-center">
-                <input type="checkbox" id="is_active" name="is_active" {{ 'checked' if user.is_active else '' }}
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <label for="is_active" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                    Account is active
-                </label>
-            </div>
-            {% endif %}
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                    <!-- Identity Section -->
+                    <div class="space-y-6">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Identity
+                            Profile</label>
 
-            <!-- Must Change Password -->
-            <div class="flex items-center">
-                <input type="checkbox" id="must_change_password" name="must_change_password" {{ 'checked' if user and
-                    user.must_change_password else '' }}
-                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                <label for="must_change_password" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                    Require password change on next login
-                </label>
-            </div>
+                        <div class="space-y-4">
+                            <div class="relative group">
+                                <i data-lucide="user"
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                <input type="text" name="username" required value="{{ user.username if user else '' }}"
+                                    placeholder="Operator Handle"
+                                    class="w-full pl-12 pr-4 py-4 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
 
-            {% if user %}
-            <!-- User Info (Edit Only) -->
-            <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
-                <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-4">Account Information</h3>
-                <div class="grid grid-cols-2 gap-4 text-sm">
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">Created:</span>
-                        <span class="text-gray-900 dark:text-white ml-2">{{ user.created_at.strftime('%Y-%m-%d %H:%M')
-                            }}</span>
+                            <div class="relative group">
+                                <i data-lucide="mail"
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                <input type="email" name="email" value="{{ user.email if user and user.email else '' }}"
+                                    placeholder="Secure Email (Optional)"
+                                    class="w-full pl-12 pr-4 py-4 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">Last Login:</span>
-                        <span class="text-gray-900 dark:text-white ml-2">
-                            {{ user.last_login_at.strftime('%Y-%m-%d %H:%M') if user.last_login_at else 'Never' }}
-                        </span>
-                    </div>
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">Failed Attempts:</span>
-                        <span class="text-gray-900 dark:text-white ml-2">{{ user.failed_login_attempts }}</span>
-                    </div>
-                    <div>
-                        <span class="text-gray-500 dark:text-gray-400">Password Changed:</span>
-                        <span class="text-gray-900 dark:text-white ml-2">
-                            {{ user.password_changed_at.strftime('%Y-%m-%d') if user.password_changed_at else 'Unknown'
-                            }}
-                        </span>
+
+                    <!-- Security Section -->
+                    <div class="space-y-6">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Security
+                            Bounds</label>
+
+                        <div class="space-y-4">
+                            {% if not user %}
+                            <div class="relative group">
+                                <i data-lucide="lock"
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                <input type="password" name="password" required placeholder="Initial Access Key"
+                                    class="w-full pl-12 pr-4 py-4 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <div class="relative group">
+                                <i data-lucide="check-circle"
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                <input type="password" name="confirm_password" required placeholder="Verify Access Key"
+                                    class="w-full pl-12 pr-4 py-4 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            {% else %}
+                            <div class="relative group">
+                                <i data-lucide="key"
+                                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400"></i>
+                                <input type="password" name="new_password" placeholder="Override Access Key"
+                                    class="w-full pl-12 pr-4 py-4 bg-gray-50/50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all">
+                            </div>
+                            <p class="text-[9px] text-gray-400 font-bold uppercase tracking-tighter px-2 mt-2">Leave
+                                blank to retain existing key.</p>
+                            {% endif %}
+                        </div>
                     </div>
                 </div>
-            </div>
-            {% endif %}
 
-            <!-- Action Buttons -->
-            <div class="flex items-center justify-between pt-6 border-t border-gray-200 dark:border-gray-700">
-                <a href="{{ url_for('admin_users') }}"
-                    class="text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white inline-flex items-center space-x-1">
-                    <i data-lucide="arrow-left" class="w-4 h-4"></i>
-                    <span>Cancel</span>
-                </a>
-                <button type="submit"
-                    class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-105 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800">
-                    {% if user %}Update User{% else %}Create User{% endif %}
-                </button>
-            </div>
-        </form>
+                <!-- Policies -->
+                <div class="space-y-4 pt-4 border-t border-gray-50 dark:border-gray-700/50">
+                    <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest">Access
+                        Policies</label>
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {% if user %}
+                        <label
+                            class="flex items-center p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-transparent hover:border-blue-500/30 transition-all cursor-pointer group">
+                            <input type="checkbox" name="is_active" {{ 'checked' if user.is_active else '' }}
+                                class="w-4 h-4 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-3 text-xs font-bold text-gray-700 dark:text-gray-300">Account Active</span>
+                        </label>
+                        {% endif %}
+                        <label
+                            class="flex items-center p-4 bg-gray-50/50 dark:bg-gray-900/50 rounded-2xl border border-transparent hover:border-blue-500/30 transition-all cursor-pointer group">
+                            <input type="checkbox" name="must_change_password" {{ 'checked' if user and
+                                user.must_change_password else '' }}
+                                class="w-4 h-4 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-blue-600 focus:ring-blue-500">
+                            <span class="ml-3 text-xs font-bold text-gray-700 dark:text-gray-300">Mandatory
+                                Rotation</span>
+                        </label>
+                    </div>
+                </div>
+
+                {% if user %}
+                <!-- Metrics -->
+                <div class="bg-gray-50/50 dark:bg-gray-900/50 rounded-3xl p-6 space-y-4">
+                    <h3 class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Operator Metrics</h3>
+                    <div class="grid grid-cols-2 gap-y-4 gap-x-8">
+                        <div>
+                            <p class="text-[9px] font-bold text-gray-400 uppercase">Commencement</p>
+                            <p class="text-xs font-bold text-gray-700 dark:text-gray-300 mt-1">{{
+                                user.created_at.strftime('%Y-%m-%d') }}</p>
+                        </div>
+                        <div>
+                            <p class="text-[9px] font-bold text-gray-400 uppercase">Last Synchronization</p>
+                            <p class="text-xs font-bold text-gray-700 dark:text-gray-300 mt-1">{{
+                                user.last_login_at.strftime('%Y-%m-%d %H:%M') if user.last_login_at else 'Never' }}</p>
+                        </div>
+                    </div>
+                </div>
+                {% endif %}
+
+                <!-- Actions -->
+                <div class="flex items-center justify-between pt-6 border-t border-gray-50 dark:border-gray-700/50">
+                    <a href="{{ url_for('admin_users') }}"
+                        class="text-xs font-bold text-gray-400 hover:text-gray-600 transition-colors uppercase tracking-widest">
+                        Abort Mission
+                    </a>
+                    <button type="submit"
+                        class="px-8 py-4 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl transition-all hover:-translate-y-1 active:scale-95">
+                        {% if user %}Commit Changes{% else %}Verify & Provision{% endif %}
+                    </button>
+                </div>
+            </form>
+        </div>
     </div>
 </div>
 {% endblock %}

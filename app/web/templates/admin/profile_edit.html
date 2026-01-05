@@ -1,18 +1,20 @@
-{% extends "base.html" %}
+{% extends "admin/admin_base.html" %}
 
 {% block head %}
 <style>
-    /* CKEditor Dark Mode Support - Force override */
+    /* CKEditor Dark Mode Support */
     .dark .ck.ck-editor__main>.ck-editor__editable,
     .dark .ck-editor__editable_inline {
-        background-color: #1f2937 !important;
+        background-color: rgba(17, 24, 39, 0.5) !important;
         color: #f3f4f6 !important;
-        border-color: #4b5563 !important;
+        border-color: #374151 !important;
+        border-radius: 0 0 1.5rem 1.5rem !important;
     }
 
     .dark .ck.ck-toolbar {
-        background-color: #374151 !important;
-        border-color: #4b5563 !important;
+        background-color: #1f2937 !important;
+        border-color: #374151 !important;
+        border-radius: 1.5rem 1.5rem 0 0 !important;
     }
 
     .dark .ck-button,
@@ -21,264 +23,316 @@
     }
 
     .dark .ck-button:hover:not(.ck-disabled) {
-        background-color: #4b5563 !important;
+        background-color: #374151 !important;
     }
 
     .dark .ck-button.ck-on {
-        background-color: #4b5563 !important;
-        color: #60a5fa !important;
+        background-color: #3b82f6 !important;
+        color: white !important;
     }
 
-    /* Light mode fallback */
-    .ck.ck-editor__main>.ck-editor__editable:not(.dark) {
-        background-color: white !important;
-        color: #111827 !important;
+    .ck-editor__editable:focus {
+        border-color: #3b82f6 !important;
+        box-shadow: none !important;
     }
 </style>
 {% endblock %}
 
-{% block title %}{{ 'Edit Profile' if profile else 'Create Profile' }} - Admin{% endblock %}
+{% block title %}{{ 'Calibrate Identity' if profile else 'Initialize Strategy' }} - {{ config.APP_NAME }}{% endblock %}
 
-{% block content %}
-<div class="min-h-screen bg-gray-50 dark:bg-gray-900">
-    <!-- Navigation -->
-    <nav class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between items-center h-16">
-                <div class="flex items-center space-x-4">
-                    <a href="{{ url_for('admin_profiles') }}"
-                        class="text-gray-600 dark:text-gray-300 hover:text-gray-900 dark:hover:text-white">
-                        <i data-lucide="arrow-left" class="w-5 h-5"></i>
-                    </a>
-                    <h1 class="text-xl font-display font-bold text-gray-900 dark:text-white">
-                        {{ 'Edit Profile' if profile else 'Create Profile' }}
+{% block admin_title %}Persona Calibration{% endblock %}
+
+{% block admin_content %}
+<div class="px-8 py-10 max-w-[1600px] mx-auto">
+    <form method="POST" id="profile-form" class="space-y-10">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+        <!-- Strategy Header -->
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-6">
+            <div class="flex items-center space-x-6">
+                <div
+                    class="w-20 h-20 rounded-[2.5rem] bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 shadow-2xl transform -rotate-3">
+                    <i data-lucide="{% if profile %}sliders-horizontal{% else %}plus-circle{% endif %}"
+                        class="w-10 h-10"></i>
+                </div>
+                <div>
+                    <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white tracking-tight">
+                        {% if profile %}Modify Identity: {{ profile.name }}{% else %}Initialize New Strategy{% endif %}
                     </h1>
+                    <p class="text-sm text-gray-500 mt-1">Calibrating behavioral parameters and resource alignment.</p>
                 </div>
             </div>
+
+            <div class="flex items-center gap-3">
+                <a href="{{ url_for('admin_profiles') }}"
+                    class="px-6 py-4 text-[10px] font-bold text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 uppercase tracking-widest transition-colors">
+                    Abort Strategy
+                </a>
+                <button type="submit"
+                    class="px-10 py-5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl font-bold text-xs uppercase tracking-widest shadow-xl shadow-blue-500/20 transition-all hover:-translate-y-1 active:scale-95">
+                    {% if profile %}Apply Configurations{% else %}Launch Strategy{% endif %}
+                </button>
+            </div>
         </div>
-    </nav>
 
-    <!-- Main Content -->
-    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <div class="bg-white dark:bg-gray-800 rounded-xl shadow-sm border border-gray-200 dark:border-gray-700">
-            <form method="POST" id="profile-form">
-                <div class="px-6 py-4 border-b border-gray-200 dark:border-gray-700">
-                    <h2 class="text-lg font-semibold text-gray-900 dark:text-white">Profile Details</h2>
-                </div>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-10">
+            <!-- Left Column: Identity & Persona (DNA) -->
+            <div class="lg:col-span-2 space-y-10">
+                <div
+                    class="bg-white dark:bg-gray-800 rounded-[3rem] border border-gray-100 dark:border-gray-700 p-10 shadow-sm space-y-8">
+                    <div class="flex items-center space-x-4 mb-4">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-blue-50 dark:bg-blue-900/30 flex items-center justify-center text-blue-600">
+                            <i data-lucide="brain-circuit" class="w-5 h-5"></i>
+                        </div>
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Core Identity
+                            Parameters</h2>
+                    </div>
 
-                <div class="p-6 space-y-6">
-                    <!-- Profile Name -->
-                    <div>
-                        <label for="name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Profile Name *
-                        </label>
-                        <input type="text" id="name" name="name" value="{{ profile.name if profile else '' }}" required
-                            class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="e.g., Software Engineer, Data Scientist">
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+                        <!-- Strategy Name -->
+                        <div class="space-y-3">
+                            <label
+                                class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Internal
+                                Reference ID</label>
+                            <input type="text" id="name" name="name" value="{{ profile.name if profile else '' }}"
+                                required placeholder="e.g., SOFTWARE_ENGINEER_V1"
+                                class="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white">
+                        </div>
+
+                        <!-- Display Name -->
+                        <div class="space-y-3">
+                            <label
+                                class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Public
+                                Alias (Greeting)</label>
+                            <input type="text" id="display_name" name="display_name"
+                                value="{{ profile.display_name if profile else '' }}"
+                                placeholder="e.g., Professional Portfolio"
+                                class="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white">
+                        </div>
                     </div>
 
                     <!-- Description -->
-                    <div>
-                        <label for="description"
-                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Description
-                        </label>
-                        <textarea id="description" name="description" rows="3"
-                            class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder="Brief description of this profile (optional)">{{ profile.description if profile else '' }}</textarea>
+                    <div class="space-y-3">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Strategy
+                            Brief</label>
+                        <textarea id="description" name="description" rows="2"
+                            placeholder="Define the scope and objectives for this persona..."
+                            class="w-full px-5 py-4 bg-gray-50 dark:bg-gray-900/50 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 outline-none transition-all dark:text-white resize-none">{{ profile.description if profile else '' }}</textarea>
                     </div>
 
-                    <!-- Display Name -->
-                    <div>
-                        <label for="display_name"
-                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Display Name (Chat Greeting)
-                        </label>
-                        <input type="text" id="display_name" name="display_name"
-                            value="{{ profile.display_name if profile else '' }}"
-                            class="block w-full px-4 py-3 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white placeholder-gray-500 dark:placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                            placeholder='e.g., "DanGPT" or "John Smith"'>
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">This name appears in the chat greeting
-                            "Hi! I'm..."</p>
-                    </div>
+                    <!-- System Policy / Intro -->
+                    <div class="space-y-4 pt-4">
+                        <div class="flex items-center justify-between">
+                            <label
+                                class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Intelligence
+                                Layer (Greeting Message)</label>
+                            <span class="text-[9px] font-bold text-blue-500 uppercase">Live Preview Enabled</span>
+                        </div>
 
-                    <!-- Introduction -->
-                    <div>
-                        <label for="introduction"
-                            class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                            Introduction Message
-                        </label>
-
-                        <!-- CKEditor -->
-                        <div id="editor"></div>
-
-                        <!-- Hidden field to store HTML -->
+                        <div id="editor-container" class="rounded-2xl overflow-hidden shadow-sm">
+                            <div id="editor"></div>
+                        </div>
                         <input type="hidden" id="introduction" name="introduction"
                             value="{{ profile.introduction if profile else '' }}">
-
-                        <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                            Use the editor above to format your introduction message
-                        </p>
                     </div>
 
-                    <!-- Default Profile Checkbox -->
-                    <div class="flex items-center">
-                        <input type="checkbox" id="is_default" name="is_default" {{ 'checked' if profile and
-                            profile.is_default else '' }}
-                            class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded">
-                        <label for="is_default" class="ml-2 block text-sm text-gray-700 dark:text-gray-300">
-                            Set as default profile
+                    <!-- Options -->
+                    <div class="pt-6 border-t border-gray-50 dark:border-gray-700/50 flex items-center gap-8">
+                        <label
+                            class="flex items-center p-4 bg-gray-50 dark:bg-gray-900/40 rounded-2xl border border-transparent hover:border-blue-500/20 transition-all cursor-pointer group">
+                            <input type="checkbox" id="is_default" name="is_default" {{ 'checked' if profile and
+                                profile.is_default else '' }}
+                                class="w-5 h-5 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-blue-600 focus:ring-blue-500">
+                            <div class="ml-4">
+                                <span class="block text-xs font-bold text-gray-800 dark:text-gray-200">Set as Master
+                                    Strategy</span>
+                                <span class="block text-[9px] text-gray-400 uppercase tracking-tighter mt-1">This
+                                    persona will initialize for all unauthenticated sessions.</span>
+                            </div>
                         </label>
                     </div>
+                </div>
+            </div>
 
-                    <!-- Resume Assignment (only for edit mode) -->
-                    {% if profile %}
-                    <div class="border-t border-gray-200 dark:border-gray-700 pt-6">
-                        <div class="flex items-center justify-between mb-4">
-                            <h3 class="text-base font-semibold text-gray-900 dark:text-white">Assigned Resumes</h3>
-                            <button type="button" onclick="saveResumes()"
-                                class="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300">
-                                Save Assignments
-                            </button>
+            <!-- Right Column: Resource Alignment (Artifacts) -->
+            <div class="space-y-10">
+                {% if profile %}
+                <div
+                    class="bg-white dark:bg-gray-800 rounded-[3rem] border border-gray-100 dark:border-gray-700 p-10 shadow-sm flex flex-col h-full">
+                    <div class="flex items-center space-x-4 mb-8">
+                        <div
+                            class="w-10 h-10 rounded-xl bg-purple-50 dark:bg-purple-900/30 flex items-center justify-center text-purple-600">
+                            <i data-lucide="layers" class="w-5 h-5"></i>
                         </div>
+                        <h2 class="text-lg font-bold text-gray-900 dark:text-white tracking-tight">Artifact Synergy</h2>
+                    </div>
 
+                    <p class="text-xs text-gray-500 mb-6 leading-relaxed">Map specific resumes to this identity. The AI
+                        will cross-reference these documents for all contextual queries.</p>
+
+                    <div class="flex-1 space-y-3 max-h-[400px] overflow-y-auto no-scrollbar pr-2">
                         {% if resumes %}
-                        <div class="space-y-2 mb-6">
-                            {% for resume in resumes %}
-                            <label
-                                class="flex items-center p-3 bg-gray-50 dark:bg-gray-700/50 rounded-lg border border-gray-200 dark:border-gray-700 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700">
-                                <input type="checkbox" name="resume_ids[]" value="{{ resume.id }}" {{ 'checked' if
-                                    resume.id in assigned_resume_ids else '' }}
-                                    class="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded resume-checkbox">
-                                <span class="ml-3 text-sm text-gray-900 dark:text-white flex-1">
-                                    {{ resume.original_filename }}
-                                </span>
-                                <span class="text-xs text-gray-500 dark:text-gray-400">
-                                    {{ resume.uploaded_at.strftime('%Y-%m-%d') }}
-                                </span>
-                            </label>
-                            {% endfor %}
-                        </div>
-
-                        <!-- Primary Resume Selection -->
-                        <div class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
-                            <label for="primary_resume_id"
-                                class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                                Primary Resume (for downloads)
-                            </label>
-                            <select id="primary_resume_id" name="primary_resume_id"
-                                class="block w-full px-4 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-                                <option value="">None</option>
-                                {% for resume in resumes %}
-                                {% if resume.id in assigned_resume_ids %}
-                                <option value="{{ resume.id }}" {{ 'selected' if profile.primary_resume_id==resume.id
-                                    else '' }}>
-                                    {{ resume.original_filename }}
-                                </option>
-                                {% endif %}
-                                {% endfor %}
-                            </select>
-                            <p class="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                                This file will be offered for download when users ask for your resume
-                            </p>
-                        </div>
+                        {% for resume in resumes %}
+                        <label
+                            class="flex items-center p-5 bg-gray-50/50 dark:bg-gray-900/30 rounded-2xl border border-transparent hover:border-purple-500/30 transition-all cursor-pointer group animate-in slide-in-from-right-4"
+                            style="animation-delay: {{ loop.index0 * 50 }}ms">
+                            <input type="checkbox" name="resume_ids[]" value="{{ resume.id }}" {{ 'checked' if resume.id
+                                in assigned_resume_ids else '' }}
+                                class="w-5 h-5 rounded-lg bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700 text-purple-600 focus:ring-purple-500 resume-checkbox">
+                            <div class="ml-4 flex-1 overflow-hidden">
+                                <span class="block text-xs font-bold text-gray-800 dark:text-gray-200 truncate">{{
+                                    resume.original_filename }}</span>
+                                <span class="block text-[9px] text-gray-400 uppercase tracking-tighter mt-1">Uploaded {{
+                                    resume.uploaded_at.strftime('%m/%d/%Y') }}</span>
+                            </div>
+                        </label>
+                        {% endfor %}
                         {% else %}
-                        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
-                            <i data-lucide="inbox" class="w-12 h-12 mx-auto mb-2 opacity-50"></i>
-                            <p class="text-sm">No resumes available. Upload some in Settings first.</p>
+                        <div class="text-center py-12">
+                            <i data-lucide="file-warning" class="w-10 h-10 text-gray-200 mx-auto mb-4"></i>
+                            <p class="text-xs text-gray-400 font-bold uppercase">No data found</p>
+                            <a href="{{ url_for('admin_artifacts') }}"
+                                class="text-[9px] text-purple-500 hover:text-purple-600 uppercase font-bold mt-2 inline-block">Upload
+                                Resumes First</a>
                         </div>
                         {% endif %}
                     </div>
-                    {% endif %}
-                </div>
 
-                <div
-                    class="px-6 py-4 bg-gray-50 dark:bg-gray-700 border-t border-gray-200 dark:border-gray-600 flex justify-end space-x-3 rounded-b-xl">
-                    <a href="{{ url_for('admin_profiles') }}"
-                        class="bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 font-medium py-2 px-6 rounded-lg transition-colors duration-200">
-                        Cancel
-                    </a>
-                    <button type="submit"
-                        class="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white font-medium py-2 px-6 rounded-lg transition-all duration-200 transform hover:scale-[1.02]">
-                        {{ 'Update Profile' if profile else 'Create Profile' }}
+                    <!-- Primary Download Selection -->
+                    <div class="mt-8 pt-8 border-t border-gray-50 dark:border-gray-700/50 space-y-4">
+                        <label class="block text-[10px] font-bold text-gray-400 uppercase tracking-widest px-1">Primary
+                            Narrative Artifact</label>
+                        <select id="primary_resume_id" name="primary_resume_id"
+                            class="w-full px-5 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 border-none rounded-2xl text-[10px] font-bold uppercase tracking-[0.15em] outline-none shadow-xl hover:scale-[1.02] transition-transform cursor-pointer">
+                            <option value="">None (Disable Downloads)</option>
+                            {% for resume in resumes %}
+                            {% if resume.id in assigned_resume_ids %}
+                            <option value="{{ resume.id }}" {{ 'selected' if profile.primary_resume_id==resume.id
+                                else '' }}>
+                                {{ resume.original_filename|truncate(20) }}
+                            </option>
+                            {% endif %}
+                            {% endfor %}
+                        </select>
+                        <p class="text-[9px] text-gray-400 italic font-medium leading-relaxed px-1">Selected artifact
+                            will be served for public download requests within this persona's context.</p>
+                    </div>
+
+                    <button type="button" onclick="saveResumes()" id="artifact-sync-btn"
+                        class="mt-6 w-full py-4 border border-purple-500/20 text-purple-500 hover:bg-purple-500 hover:text-white rounded-2xl text-[10px] font-bold uppercase tracking-widest transition-all">
+                        Sync Artifact Assignments
                     </button>
                 </div>
-            </form>
+                {% else %}
+                <div
+                    class="bg-gray-50 dark:bg-gray-900/40 rounded-[3rem] p-10 border border-dashed border-gray-200 dark:border-gray-700 flex flex-col items-center justify-center text-center space-y-4">
+                    <div
+                        class="w-16 h-16 rounded-full bg-white dark:bg-gray-800 flex items-center justify-center text-gray-300">
+                        <i data-lucide="lock" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="text-sm font-bold text-gray-900 dark:text-white">Alignment Locked</h3>
+                        <p class="text-xs text-gray-500 mt-2">Initialize the profile strategy first to enable artifact
+                            synergy mapping.</p>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 
-<!-- CKEditor 5 CDN -->
+<!-- Scripts Area -->
 <script src="https://cdn.ckeditor.com/ckeditor5/40.1.0/classic/ckeditor.js"></script>
-
 <script>
     let editorInstance;
 
     document.addEventListener('DOMContentLoaded', function () {
-        // Initialize CKEditor
+        // Initialize CKEditor 5
         ClassicEditor
             .create(document.querySelector('#editor'), {
-                toolbar: ['bold', 'italic', 'underline', '|', 'link', 'bulletedList', 'numberedList'],
-                placeholder: 'Enter your introduction message...'
+                toolbar: {
+                    items: [
+                        'heading', '|',
+                        'bold', 'italic', 'underline', 'link', '|',
+                        'bulletedList', 'numberedList', '|',
+                        'undo', 'redo'
+                    ],
+                    shouldNotGroupWhenFull: true
+                },
+                placeholder: 'Craft the perfect greeting message for this identity...'
             })
             .then(editor => {
                 editorInstance = editor;
 
-                // Force dark text color in editor
-                const editableElement = editor.editing.view.document.getRoot();
-                editor.editing.view.change(writer => {
-                    writer.setStyle('color', '#111827', editableElement);
-                });
-
-                // Load existing content
+                // Set initial content
                 const existingContent = document.getElementById('introduction').value;
                 if (existingContent) {
                     editor.setData(existingContent);
                 }
+
+                // Auto-sync to hidden field on change
+                editor.model.document.on('change:data', () => {
+                    document.getElementById('introduction').value = editor.getData();
+                });
             })
             .catch(error => {
-                console.error('CKEditor initialization error:', error);
+                console.error('Core Logic Failure:', error);
             });
 
-        // Sync content to hidden field on form submit
-        document.getElementById('profile-form').addEventListener('submit', function () {
+        // Form Submit Logic
+        const form = document.getElementById('profile-form');
+        form.addEventListener('submit', () => {
             if (editorInstance) {
                 document.getElementById('introduction').value = editorInstance.getData();
             }
         });
 
-        {% if profile %}
-        async function saveResumes() {
+        // Artifact Sync Logic
+        window.saveResumes = async function () {
+            const btn = document.getElementById('artifact-sync-btn');
+            const originalText = btn.textContent;
             const checkboxes = document.querySelectorAll('.resume-checkbox:checked');
             const resumeIds = Array.from(checkboxes).map(cb => cb.value);
 
+            btn.disabled = true;
+            btn.textContent = 'Synchronizing...';
+            btn.classList.add('animate-pulse');
+
             try {
                 const formData = new URLSearchParams();
-                resumeIds.forEach(id => {
-                    formData.append('resume_ids[]', id);
-                });
+                resumeIds.forEach(id => formData.append('resume_ids[]', id));
 
-                const response = await fetch('{{ url_for("assign_resumes", profile_id=profile.id) }}', {
+                const response = await fetch('{{ url_for("assign_resumes", profile_id=profile.id if profile else 0) }}', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/x-www-form-urlencoded',
-                    },
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                     body: formData.toString()
                 });
 
-                const result = await response.json();
-
                 if (response.ok) {
-                    showToast('Resumes updated successfully!', 'success');
+                    btn.textContent = 'Logic Synced';
+                    btn.classList.remove('animate-pulse', 'border-purple-500/20', 'text-purple-500');
+                    btn.classList.add('bg-green-500', 'text-white', 'border-green-500');
+
+                    // Update dropdown
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1000);
                 } else {
-                    showToast('Error: ' + (result.error || 'Failed to update resumes'), 'error');
+                    throw new Error('Sync Interrupted');
                 }
             } catch (error) {
-                showToast('Error: ' + error.message, 'error');
+                btn.textContent = 'Err: Sync Failed';
+                btn.classList.remove('animate-pulse');
+                btn.classList.add('bg-red-500', 'text-white');
+                setTimeout(() => {
+                    btn.textContent = originalText;
+                    btn.disabled = false;
+                    btn.classList.remove('bg-red-500', 'text-white');
+                }, 2000);
             }
         }
-        window.saveResumes = saveResumes;
-        {% endif %}
     });
 </script>
 {% endblock %}

@@ -1,69 +1,107 @@
 {% extends "admin/admin_base.html" %}
 
-{% block title %}Manage Profiles - {{ config.APP_NAME }}{% endblock %}
+{% block title %}Profile Architecture - {{ config.APP_NAME }}{% endblock %}
 
-{% block admin_title %}Profiles Strategy{% endblock %}
+{% block admin_title %}Persona Collections{% endblock %}
 
 {% block admin_content %}
 <div class="px-8 py-8 space-y-8 max-w-[1600px] mx-auto">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
-        <div>
-            <h1 class="text-2xl font-display font-bold text-gray-900 dark:text-white">Profile Collections</h1>
-            <p class="text-sm text-gray-500 mt-1">Group artifacts to create specialized AI personas for different
-                audiences.</p>
+    <!-- Header Strategy Area -->
+    <div class="flex flex-col md:flex-row md:items-end justify-between gap-6">
+        <div class="flex flex-col lg:flex-row lg:items-center gap-6">
+            <div
+                class="w-16 h-16 rounded-3xl bg-gray-900 dark:bg-white flex items-center justify-center text-white dark:text-gray-900 shadow-2xl">
+                <i data-lucide="folder-kanban" class="w-8 h-8"></i>
+            </div>
+            <div>
+                <h1 class="text-3xl font-display font-bold text-gray-900 dark:text-white tracking-tight">Identity
+                    Strategy</h1>
+                <p class="text-sm text-gray-500 mt-1 max-w-sm">Architect specialized AI personas by bridging artifacts
+                    with targeted conversational patterns.</p>
+            </div>
         </div>
-        <a href="{{ url_for('create_profile') }}"
-            class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-lg shadow-blue-500/20 transition-all font-bold text-sm flex items-center">
-            <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
-            Create Profile
-        </a>
+
+        <div class="flex items-center gap-3">
+            <div class="relative group">
+                <i data-lucide="search"
+                    class="absolute left-4 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400 group-focus-within:text-blue-500 transition-colors"></i>
+                <input type="text" id="profile-search" placeholder="Filter profiles..."
+                    class="pl-11 pr-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl text-xs focus:ring-2 focus:ring-blue-500 hover:border-blue-500/30 outline-none transition-all w-64 shadow-sm">
+            </div>
+            <a href="{{ url_for('create_profile') }}"
+                class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 transition-all font-bold text-xs uppercase tracking-widest flex items-center">
+                <i data-lucide="plus" class="w-4 h-4 mr-2"></i>
+                New Strategy
+            </a>
+        </div>
     </div>
 
     {% if profiles %}
-    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+    <div id="profile-grid" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         {% for profile in profiles %}
-        <div
-            class="group bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm hover:shadow-xl transition-all duration-300 overflow-hidden flex flex-col h-full">
-            <div class="p-8 flex-1">
-                <div class="flex items-start justify-between mb-6">
+        <div class="profile-card group relative bg-white dark:bg-gray-800 rounded-[2.5rem] border border-gray-100 dark:border-gray-700/50 shadow-sm hover:shadow-2xl hover:-translate-y-1 transition-all duration-500 overflow-hidden flex flex-col h-full"
+            data-name="{{ profile.name|lower }}">
+
+            <!-- Default Glow -->
+            {% if profile.is_default %}
+            <div class="absolute inset-0 bg-blue-500/5 dark:bg-blue-400/5 pointer-events-none"></div>
+            {% endif %}
+
+            <div class="p-10 flex-1 relative z-10">
+                <div class="flex items-start justify-between mb-8">
                     <div
-                        class="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center group-hover:bg-blue-600 transition-colors group-hover:text-white shadow-sm">
-                        <i data-lucide="folder-kanban" class="w-6 h-6"></i>
+                        class="w-14 h-14 rounded-2xl bg-gray-50 dark:bg-gray-900 flex items-center justify-center group-hover:bg-blue-600 transition-all duration-500 group-hover:text-white dark:group-hover:text-white text-gray-400 shadow-sm group-hover:shadow-lg group-hover:shadow-blue-500/30 group-hover:rotate-6">
+                        <i data-lucide="fingerprint" class="w-6 h-6"></i>
                     </div>
                     {% if profile.is_default %}
                     <span
-                        class="px-3 py-1 bg-green-50 text-green-600 dark:bg-green-900/30 dark:text-green-400 rounded-full text-[10px] font-bold uppercase tracking-widest border border-green-100 dark:border-green-800">
-                        Primary Default
+                        class="px-3 py-1 bg-blue-50 text-blue-600 dark:bg-blue-900/40 dark:text-blue-400 rounded-lg text-[9px] font-bold uppercase tracking-[0.2em] border border-blue-100 dark:border-blue-800/50">
+                        Primary System
                     </span>
                     {% endif %}
                 </div>
 
-                <h3 class="text-lg font-bold text-gray-900 dark:text-white mb-2">{{ profile.name }}</h3>
-                <p class="text-sm text-gray-500 line-clamp-2 leading-relaxed mb-6">{{ profile.description or 'No
-                    strategy description provided for this profile.' }}</p>
+                <div class="space-y-3">
+                    <h3 class="text-xl font-display font-bold text-gray-900 dark:text-white leading-tight">{{
+                        profile.name }}</h3>
+                    <p class="text-sm text-gray-500 dark:text-gray-400 line-clamp-3 leading-relaxed">
+                        {{ profile.description or 'No operational strategy defined for this identity yet. Configure
+                        artifacts to begin.' }}
+                    </p>
+                </div>
 
-                <div class="flex items-center space-x-4">
-                    <div
-                        class="flex items-center text-xs font-bold text-gray-400 group-hover:text-blue-500 transition-colors uppercase tracking-tight">
-                        <i data-lucide="file-stack" class="w-4 h-4 mr-2"></i>
-                        {{ profile.resumes.count() }} Attached Artifacts
+                <div class="mt-8 pt-8 border-t border-gray-50 dark:border-gray-700/50">
+                    <div class="flex items-center justify-between">
+                        <div class="flex items-center gap-2">
+                            <div
+                                class="w-8 h-8 rounded-lg bg-gray-50 dark:bg-gray-900 flex items-center justify-center text-gray-400 group-hover:text-blue-500 transition-colors">
+                                <i data-lucide="file-stack" class="w-4 h-4"></i>
+                            </div>
+                            <span class="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{{
+                                profile.resumes.count() }} Artifacts</span>
+                        </div>
+                        <span
+                            class="text-[9px] font-bold text-gray-400 uppercase tracking-tighter opacity-0 group-hover:opacity-100 transition-opacity">
+                            Sync Active
+                        </span>
                     </div>
                 </div>
             </div>
 
+            <!-- Card Controls -->
             <div
-                class="p-6 bg-gray-50/50 dark:bg-gray-900/20 border-t border-gray-50 dark:border-gray-700 flex items-center gap-3">
+                class="p-6 bg-gray-50/50 dark:bg-gray-900/20 flex items-center gap-3 border-t border-gray-50 dark:border-gray-700/30">
                 <a href="{{ url_for('edit_profile', profile_id=profile.id) }}"
-                    class="flex-1 px-4 py-2.5 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors text-center text-xs font-bold rounded-xl">
-                    Configure
+                    class="flex-1 px-6 py-3 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-900 dark:text-white hover:bg-gray-900 dark:hover:bg-blue-600 hover:text-white transition-all text-center text-[10px] font-bold uppercase tracking-widest rounded-2xl shadow-sm hover:shadow-lg">
+                    Reconfigure
                 </a>
                 {% if not profile.is_default %}
                 <form method="POST" action="{{ url_for('delete_profile', profile_id=profile.id) }}"
-                    onsubmit="return confirm('Purge this profile? (Artifacts will remain unassigned)');" class="inline">
+                    onsubmit="return confirm('Initiate profile purge? This action is irreversible.');" class="inline">
+                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                     <button type="submit"
-                        class="p-2.5 text-red-500 hover:bg-black hover:text-red-400 transition-all rounded-xl">
-                        <i data-lucide="trash-2" class="w-5 h-5"></i>
+                        class="p-3 text-red-500 hover:bg-red-500 hover:text-white transition-all rounded-2xl border border-transparent hover:border-red-500/20 group/del">
+                        <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
                 </form>
                 {% endif %}
@@ -73,18 +111,57 @@
     </div>
     {% else %}
     <div
-        class="flex flex-col items-center justify-center p-20 bg-white dark:bg-gray-800 rounded-3xl border border-gray-100 dark:border-gray-700 shadow-sm text-center">
-        <div class="w-20 h-20 rounded-full bg-gray-50 dark:bg-gray-900 flex items-center justify-center mb-6">
-            <i data-lucide="inbox" class="w-10 h-10 text-gray-300"></i>
+        class="flex flex-col items-center justify-center p-20 bg-white dark:bg-gray-800 rounded-[3rem] border border-gray-100 dark:border-gray-700 shadow-sm text-center relative overflow-hidden group">
+        <div
+            class="absolute inset-0 opacity-10 blur-3xl bg-blue-500/20 -translate-y-1/2 rounded-full pointer-events-none">
         </div>
-        <h3 class="text-xl font-bold text-gray-900 dark:text-white">The archive is empty.</h3>
-        <p class="text-sm text-gray-500 mt-2 max-w-sm">Create profiles to target specific industries, roles, or hiring
-            managers with precise resume artifacts.</p>
-        <a href="{{ url_for('create_profile') }}"
-            class="mt-8 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-2xl shadow-xl shadow-blue-500/20 transition-all font-bold text-sm">
-            Launch First Profile
-        </a>
+
+        <div class="relative z-10 max-w-lg mx-auto">
+            <div
+                class="w-48 h-48 mx-auto mb-10 rounded-[3rem] overflow-hidden shadow-2xl transform group-hover:scale-105 transition-transform duration-700 rotate-3 group-hover:rotate-0">
+                <img src="/static/images/empty_profiles_illustration.png" alt="No Profiles"
+                    class="w-full h-full object-cover">
+            </div>
+            <h3 class="text-3xl font-display font-bold text-gray-900 dark:text-white tracking-tight">Strategy Archive
+                Empty</h3>
+            <p class="text-sm text-gray-500 mt-4 leading-relaxed">Profiles act as the intelligence hub, mapping your
+                diverse skillsets to specific professional trajectories. Create your first persona to begin.</p>
+            <a href="{{ url_for('create_profile') }}"
+                class="mt-10 px-8 py-4 bg-gray-900 dark:bg-white text-white dark:text-gray-900 rounded-2xl shadow-2xl transition-all font-bold text-xs uppercase tracking-[0.2em] inline-flex items-center hover:scale-105 active:scale-95">
+                Initialize System
+                <i data-lucide="zap" class="w-4 h-4 ml-3 text-yellow-500"></i>
+            </a>
+        </div>
     </div>
     {% endif %}
 </div>
+
+<script>
+    const searchInput = document.getElementById('profile-search');
+    const profileGrid = document.getElementById('profile-grid');
+    const cards = document.querySelectorAll('.profile-card');
+
+    searchInput?.addEventListener('input', (e) => {
+        const query = e.target.value.toLowerCase();
+        cards.forEach(card => {
+            const name = card.dataset.name;
+            if (name.includes(query)) {
+                card.style.display = 'flex';
+                card.style.animation = 'fadeIn 0.4s ease forwards';
+            } else {
+                card.style.display = 'none';
+            }
+        });
+    });
+
+    // Simple fade animation for filtering
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+    `;
+    document.head.appendChild(style);
+</script>
 {% endblock %}

@@ -202,8 +202,16 @@ Monitor for:
 - OR admin can unlock at `/admin/users`
 
 ### Forgot Password
-- Currently requires admin to reset
-- Email-based reset coming in future update
+- Use the provided CLI utility script to reset passwords if locked out.
+- **Docker Usage**:
+  ```bash
+  docker compose exec chatbot python scripts/reset_admin.py reset <username> <new_password>
+  ```
+- **Local Usage**:
+  ```bash
+  python scripts/reset_admin.py reset <username> <new_password>
+  ```
+- Currently requires manual execution; email-based reset coming in future update.
 
 ### Rate Limited
 - Wait for the time window to expire

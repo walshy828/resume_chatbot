@@ -634,8 +634,8 @@ def admin_dashboard():
 @admin_required
 def admin_analytics():
     """Analytics dashboard"""
-    sessions = ChatSession.query.order_by(ChatSession.started_at.desc()).all()
-    return render_template('admin/analytics.html', sessions=sessions)
+    sessions = ChatSession.query.order_by(ChatSession.last_activity.desc()).all()
+    return render_template('admin/analytics.html', sessions=sessions, now=datetime.utcnow())
 
 @app.route('/admin/settings', methods=['GET', 'POST'])
 @admin_required
